@@ -48,6 +48,7 @@ public class RecommendationResource {
         try {
             DataModel model = new FileDataModel(new File("test_skus_without_site_ids.csv"));
             ItemSimilarity similarity = new LogLikelihoodSimilarity(model);
+            //This is where writing to redis will happen
             Recommender recommender = new GenericBooleanPrefItemBasedRecommender(model, similarity);
             List<RecommendedItem> recommendedItemList = recommender.recommend(contactId.get(), count.get());
             for(RecommendedItem item : recommendedItemList) {
