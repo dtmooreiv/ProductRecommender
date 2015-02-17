@@ -2,6 +2,7 @@ package com.productrecommender;
 
 import com.productrecommender.health.RedisHealthCheck;
 import com.productrecommender.resource.RecommendationResource;
+import com.productrecommender.services.scheduled.Preprocessor;
 import io.dropwizard.Application;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
@@ -10,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 public class ProductRecommenderApplication extends Application<ProductRecommenderConfiguration>{
     final static Logger logger = LoggerFactory.getLogger(ProductRecommenderApplication.class);
+    final static String inputFilename = "skus_without_urls";
 
     public static void main(String[] args) throws Exception {
         new ProductRecommenderApplication().run(args);
@@ -17,7 +19,9 @@ public class ProductRecommenderApplication extends Application<ProductRecommende
 
     @Override
     public void initialize(Bootstrap<ProductRecommenderConfiguration> bootstrap) {
-
+        Jedis conn = new Jedis("localhost");
+        Preprocessor prep = new Preprocessor(conn);
+        prep.readFile(inputFilename);
     }
 
     @Override
