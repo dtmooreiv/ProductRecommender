@@ -4,10 +4,12 @@ import com.productrecommender.health.RedisHealthCheck;
 import com.productrecommender.resource.RecommendationResource;
 import com.productrecommender.services.scheduled.Preprocessor;
 import io.dropwizard.Application;
+import io.dropwizard.assets.AssetsBundle;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import redis.clients.jedis.Jedis;
 
 public class ProductRecommenderApplication extends Application<ProductRecommenderConfiguration>{
     final static Logger logger = LoggerFactory.getLogger(ProductRecommenderApplication.class);
@@ -22,6 +24,7 @@ public class ProductRecommenderApplication extends Application<ProductRecommende
         Jedis conn = new Jedis("localhost");
         Preprocessor prep = new Preprocessor(conn);
         prep.readFile(inputFilename);
+        bootstrap.addBundle(new AssetsBundle("/assets", "/", "index.html"));
     }
 
     @Override
