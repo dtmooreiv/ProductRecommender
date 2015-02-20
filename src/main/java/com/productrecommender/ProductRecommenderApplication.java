@@ -34,6 +34,7 @@ public class ProductRecommenderApplication extends Application<ProductRecommende
         final RecommendationResource recommendationResource = new RecommendationResource(conn);
         final RedisHealthCheck redisHealthCheck = new RedisHealthCheck();
 
+        environment.jersey().setUrlPattern("/api/*");
         environment.jersey().register(recommendationResource);
         environment.healthChecks().register("Redis", redisHealthCheck);
     }
