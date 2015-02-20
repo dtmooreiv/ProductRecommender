@@ -12,8 +12,9 @@ public class Preprocessor {
     private final Jedis conn;
     private HashMap<Long,LinkedList<String>> siteBasedOrderHistory;
     private HashMap<Long,HashMap<String, Integer>> siteBasedProductMappings;
-    private static final String output = "order_history_";
-    private static final String productCatalog = "product_catalog_";
+    public static final String output = "order_history_";
+    public static final String productCatalog = "product_catalog_";
+    public static final String site_set = "site_set";
 
     public Preprocessor(Jedis conn) {
         this.conn = conn;
@@ -96,6 +97,7 @@ public class Preprocessor {
     private void writeOrderHistoryBySite() {
         for (Map.Entry<Long,LinkedList<String>> entry : siteBasedOrderHistory.entrySet())
         {
+            conn.sadd(site_set, entry.getKey().toString());
             String siteFileName = siteFileName(entry.getKey());
             File out;
             FileOutputStream fos;
