@@ -8,10 +8,12 @@ import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import redis.clients.jedis.Jedis;
 
 public class ProductRecommenderApplication extends Application<ProductRecommenderConfiguration>{
     final static Logger logger = LoggerFactory.getLogger(ProductRecommenderApplication.class);
     final static String inputFilename = "skus_without_urls";
+    final static Jedis conn = new Jedis("localhost");
 
     public static void main(String[] args) throws Exception {
         new ProductRecommenderApplication().run(args);
@@ -19,7 +21,6 @@ public class ProductRecommenderApplication extends Application<ProductRecommende
 
     @Override
     public void initialize(Bootstrap<ProductRecommenderConfiguration> bootstrap) {
-        Jedis conn = new Jedis("localhost");
         Preprocessor prep = new Preprocessor(conn);
         prep.readFile(inputFilename);
     }
@@ -28,7 +29,7 @@ public class ProductRecommenderApplication extends Application<ProductRecommende
     public void run(ProductRecommenderConfiguration productRecommenderConfiguration, Environment environment) throws Exception {
         logger.info("Started Recommending");
 
-        final RecommendationResource recommendationResource = new RecommendationResource();
+        final RecommendationResource recommendationResource = new RecommendationResource(conn);
         final RedisHealthCheck redisHealthCheck = new RedisHealthCheck();
 
         environment.jersey().register(recommendationResource);

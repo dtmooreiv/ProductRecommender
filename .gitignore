@@ -1,0 +1,7 @@
+order_history_*
+target/
+skus_without_urls
+*.iml
+*.ipr
+*.iws
+.idea/

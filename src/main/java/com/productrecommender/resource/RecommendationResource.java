@@ -1,6 +1,7 @@
 package com.productrecommender.resource;
 
 import com.productrecommender.core.Recommendation;
+import com.productrecommender.services.scheduled.Preprocessor;
 import io.dropwizard.jersey.params.IntParam;
 import io.dropwizard.jersey.params.LongParam;
 import org.apache.mahout.cf.taste.common.TasteException;
@@ -13,6 +14,7 @@ import org.apache.mahout.cf.taste.recommender.Recommender;
 import org.apache.mahout.cf.taste.similarity.ItemSimilarity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import redis.clients.jedis.Jedis;
 
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
@@ -32,8 +34,10 @@ public class RecommendationResource {
 
     final static Logger logger = LoggerFactory.getLogger(RecommendationResource.class);
 
-    public RecommendationResource() {
+    private final Jedis conn;
 
+    public RecommendationResource(Jedis conn) {
+        this.conn = conn;
     }
 
     @GET
@@ -46,14 +50,20 @@ public class RecommendationResource {
         ArrayList<String> products = new ArrayList<>();
 
         try {
-            DataModel model = new FileDataModel(new File("test_skus_without_site_ids.csv"));
+            //Check to see if we have data for this site
+            if(!conn.sismember(Preprocessor.site_set, siteId.toString())) {
+                return new Recommendation(products);
+            }
+
+            DataModel model = new FileDataModel(new File(Preprocessor.output + siteId));
             ItemSimilarity similarity = new LogLikelihoodSimilarity(model);
             //This is where writing to redis will happen
             Recommender recommender = new GenericBooleanPrefItemBasedRecommender(model, similarity);
             List<RecommendedItem> recommendedItemList = recommender.recommend(contactId.get(), count.get());
-            for(RecommendedItem item : recommendedItemList) {
-                products.add("Product Id: " + item.getItemID() + " " + " score: " + item.getValue());
+            for (RecommendedItem item : recommendedItemList) {
+                products.add("productId: " + conn.hget(Preprocessor.productCatalog + siteId, item.getItemID() + "") + " " + " score: " + item.getValue());
             }
+
         } catch (IOException e) {
             e.printStackTrace();
         } catch (TasteException e) {
