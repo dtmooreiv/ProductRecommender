@@ -28,6 +28,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Path("/recommend/{siteId}/{contactId}")
 @Produces(MediaType.APPLICATION_JSON)
@@ -36,9 +37,11 @@ public class RecommendationResource {
     final static Logger logger = LoggerFactory.getLogger(RecommendationResource.class);
 
     private final Jedis conn;
+    private final Map<Long, CachingRecommender> recommenders;
 
-    public RecommendationResource(Jedis conn) {
+    public RecommendationResource(Jedis conn, Map<Long, CachingRecommender> recommenders) {
         this.conn = conn;
+        this.recommenders = recommenders;
     }
 
     @GET
@@ -56,19 +59,11 @@ public class RecommendationResource {
                 return new Recommendation(products);
             }
 
-            DataModel model = new FileDataModel(new File(Preprocessor.output + siteId));
-            ItemSimilarity similarity = new LogLikelihoodSimilarity(model);
-            //This is where writing to redis will happen
-
-            Recommender recommender = new GenericBooleanPrefItemBasedRecommender(model, similarity);
-            CachingRecommender cachingRecommender = new CachingRecommender(recommender);
-            List<RecommendedItem> recommendedItemList = recommender.recommend(contactId.get(), count.get());
-            for (RecommendedItem item : recommendedItemList) {
+            List<RecommendedItem> recommendedItems = recommenders.get(siteId.get()).recommend(contactId.get(), count.get());
+            for(RecommendedItem item: recommendedItems) {
                 products.add("{\"productId\": \"" + conn.hget(Preprocessor.productCatalog + siteId, item.getItemID() + "") + "\", " + " \"score\": \"" + item.getValue() + "\"}");
             }
 
-        } catch (IOException e) {
-            e.printStackTrace();
         } catch (TasteException e) {
             e.printStackTrace();
         }
