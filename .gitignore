@@ -5,3 +5,4 @@ skus_without_urls
 *.ipr
 *.iws
 .idea/
+dump.rdb

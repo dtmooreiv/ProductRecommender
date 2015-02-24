@@ -6,6 +6,7 @@ import io.dropwizard.jersey.params.IntParam;
 import io.dropwizard.jersey.params.LongParam;
 import org.apache.mahout.cf.taste.common.TasteException;
 import org.apache.mahout.cf.taste.impl.model.file.FileDataModel;
+import org.apache.mahout.cf.taste.impl.recommender.CachingRecommender;
 import org.apache.mahout.cf.taste.impl.recommender.GenericBooleanPrefItemBasedRecommender;
 import org.apache.mahout.cf.taste.impl.similarity.LogLikelihoodSimilarity;
 import org.apache.mahout.cf.taste.model.DataModel;
@@ -58,10 +59,12 @@ public class RecommendationResource {
             DataModel model = new FileDataModel(new File(Preprocessor.output + siteId));
             ItemSimilarity similarity = new LogLikelihoodSimilarity(model);
             //This is where writing to redis will happen
+
             Recommender recommender = new GenericBooleanPrefItemBasedRecommender(model, similarity);
+            CachingRecommender cachingRecommender = new CachingRecommender(recommender);
             List<RecommendedItem> recommendedItemList = recommender.recommend(contactId.get(), count.get());
             for (RecommendedItem item : recommendedItemList) {
-                products.add("productId: " + conn.hget(Preprocessor.productCatalog + siteId, item.getItemID() + "") + " " + " score: " + item.getValue());
+                products.add("{\"productId\": \"" + conn.hget(Preprocessor.productCatalog + siteId, item.getItemID() + "") + "\", " + " \"score\": \"" + item.getValue() + "\"}");
             }
 
         } catch (IOException e) {

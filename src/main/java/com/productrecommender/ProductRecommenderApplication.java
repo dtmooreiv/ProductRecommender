@@ -4,6 +4,7 @@ import com.productrecommender.health.RedisHealthCheck;
 import com.productrecommender.resource.RecommendationResource;
 import com.productrecommender.services.scheduled.Preprocessor;
 import io.dropwizard.Application;
+import io.dropwizard.assets.AssetsBundle;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import org.slf4j.Logger;
@@ -23,6 +24,7 @@ public class ProductRecommenderApplication extends Application<ProductRecommende
     public void initialize(Bootstrap<ProductRecommenderConfiguration> bootstrap) {
         Preprocessor prep = new Preprocessor(conn);
         prep.readFile(inputFilename);
+        bootstrap.addBundle(new AssetsBundle("/assets", "/", "index.html"));
     }
 
     @Override
@@ -32,6 +34,7 @@ public class ProductRecommenderApplication extends Application<ProductRecommende
         final RecommendationResource recommendationResource = new RecommendationResource(conn);
         final RedisHealthCheck redisHealthCheck = new RedisHealthCheck();
 
+        environment.jersey().setUrlPattern("/api/*");
         environment.jersey().register(recommendationResource);
         environment.healthChecks().register("Redis", redisHealthCheck);
     }

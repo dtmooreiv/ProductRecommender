@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Recommendation Front End</title>
+	</head>
+	<body>
+		<script src="json2.js"></script>
+		<script src="application.js"></script>
+		<div id="content">
+			<label for="siteidInput">Site Id</label>
+			<input type="text" id="siteIdInput" value="9621"/>
+			<label for="contactIdInput">Contact Id</label>
+			<input type="text" id="contactIdInput" value="69750106"/>
+			<label for="countInput">Count</label>
+			<input type="number" id="countInput" value="10"/>
+			<input type="button" onclick="getRecommendations()" value="submit"/>
+		</div>
+		<div>
+			<ol id="results">
+				
+			</ol>
+		</div>
+	</body>
+</html>
