@@ -7,9 +7,13 @@ import io.dropwizard.Application;
 import io.dropwizard.assets.AssetsBundle;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
+import org.apache.mahout.cf.taste.impl.recommender.CachingRecommender;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
+
+import java.util.Map;
 
 public class ProductRecommenderApplication extends Application<ProductRecommenderConfiguration>{
     final static Logger logger = LoggerFactory.getLogger(ProductRecommenderApplication.class);
@@ -31,8 +35,11 @@ public class ProductRecommenderApplication extends Application<ProductRecommende
     public void run(ProductRecommenderConfiguration productRecommenderConfiguration, Environment environment) throws Exception {
         logger.info("Started Recommending");
 
-        final RecommendationResource recommendationResource = new RecommendationResource(conn);
+        Map<Long, CachingRecommender> recommenders = productRecommenderConfiguration.getRecommenders(conn);
+
+        final RecommendationResource recommendationResource = new RecommendationResource(conn, recommenders);
         final RedisHealthCheck redisHealthCheck = new RedisHealthCheck();
+
 
         environment.jersey().setUrlPattern("/api/*");
         environment.jersey().register(recommendationResource);
