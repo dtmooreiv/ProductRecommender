@@ -12,6 +12,8 @@ import org.apache.mahout.cf.taste.impl.recommender.CachingRecommender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.JedisPoolConfig;
 
 import java.util.Map;
 
@@ -37,9 +39,10 @@ public class ProductRecommenderApplication extends Application<ProductRecommende
 
         Map<Long, CachingRecommender> recommenders = productRecommenderConfiguration.getRecommenders(conn);
 
-        final RecommendationResource recommendationResource = new RecommendationResource(conn, recommenders);
-        final RedisHealthCheck redisHealthCheck = new RedisHealthCheck();
+        JedisPool pool = productRecommenderConfiguration.getPool();
 
+        final RecommendationResource recommendationResource = new RecommendationResource(pool, recommenders);
+        final RedisHealthCheck redisHealthCheck = new RedisHealthCheck();
 
         environment.jersey().setUrlPattern("/api/*");
         environment.jersey().register(recommendationResource);
