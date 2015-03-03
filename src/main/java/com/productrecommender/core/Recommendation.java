@@ -2,22 +2,27 @@ package com.productrecommender.core;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.util.ArrayList;
-
 public class Recommendation {
 
-    private ArrayList<String> productIds;
+    private String productId;
+    private String score;
 
     public Recommendation() {
-        //Jackson Serialization Apparently
+        // Create Empty Recommendation
     }
 
-    public Recommendation(ArrayList<String> productIds) {
-        this.productIds = productIds;
+    public Recommendation(String productId, String score) {
+        this.productId = productId;
+        this.score = score;
     }
 
     @JsonProperty
-    public ArrayList<String> getProductIds() {
-        return productIds;
+    public String getProductId() {
+        return productId;
+    }
+
+    @JsonProperty
+    public String getScore() {
+        return score;
     }
 }
