@@ -69,7 +69,7 @@ public class RecommendationResource {
             e.printStackTrace();
         }
 
-
+        pool.returnResource(conn);
         return new Recommendation(products);
     }
 
