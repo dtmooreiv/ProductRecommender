@@ -13,6 +13,8 @@ import org.apache.mahout.cf.taste.similarity.ItemSimilarity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.JedisPoolConfig;
 
 import java.io.File;
 import java.io.IOException;
@@ -48,5 +50,13 @@ public class ProductRecommenderConfiguration extends Configuration{
         }
 
         return recommenders;
+    }
+
+    public JedisPool getPool() {
+        JedisPoolConfig config = new JedisPoolConfig();
+        config.setMaxTotal(1000);
+
+        JedisPool pool = new JedisPool(config, "localhost");
+        return pool;
     }
 }

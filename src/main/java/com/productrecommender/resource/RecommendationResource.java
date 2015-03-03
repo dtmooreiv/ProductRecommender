@@ -16,6 +16,7 @@ import org.apache.mahout.cf.taste.similarity.ItemSimilarity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
 
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
@@ -36,11 +37,11 @@ public class RecommendationResource {
 
     final static Logger logger = LoggerFactory.getLogger(RecommendationResource.class);
 
-    private final Jedis conn;
+    private final JedisPool pool;
     private final Map<Long, CachingRecommender> recommenders;
 
-    public RecommendationResource(Jedis conn, Map<Long, CachingRecommender> recommenders) {
-        this.conn = conn;
+    public RecommendationResource(JedisPool pool, Map<Long, CachingRecommender> recommenders) {
+        this.pool = pool;
         this.recommenders = recommenders;
     }
 
@@ -50,7 +51,7 @@ public class RecommendationResource {
                                     @QueryParam("count") @DefaultValue("10")IntParam count) {
         logger.info(count + " recommendations requested for site id " + siteId + " contact id "  + contactId);
 
-
+        Jedis conn = pool.getResource();
         ArrayList<String> products = new ArrayList<>();
 
         try {
