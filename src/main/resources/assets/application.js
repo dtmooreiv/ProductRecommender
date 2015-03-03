@@ -7,21 +7,39 @@ function getRecommendations() {
 
     //Get the recommendations based on user input
 	var response = httpGet("/api/recommend/" + siteId + "/" + contactId + "?count=" + count);
-	var recommendations = JSON.parse(response);
 
 	//Get and Remove all previous results
 	var orderedList = document.getElementById("results");
-	var length = orderedList.children.length;
-	for(i = 0; i < length; i++) {
-		orderedList.children[0].parentNode.removeChild(orderedList.children[0]);
-	}
+	clearRecommendationTable(orderedList);
 
     //Add a list item containing the productId and score to the results ordered list for display
-    for(var i = 0; i < recommendations.length; i++) {
-        var resultElement = document.createElement("li");
-        var resultText = document.createTextNode(recommendations[i].productId + " " + recommendations[i].score);
-        resultElement.appendChild(resultText);
-        orderedList.appendChild(resultElement);
+    createRecommendationTable(response, orderedList);
+}
+
+//This function builds a table for display
+function createRecommendationTable(getRequestResponse, tableElement) {
+    var recommendations = JSON.parse(getRequestResponse);
+    for (key in recommendations) {
+        var nameElement = document.createElement("li");
+        var nameText = document.createTextNode("ContactId: " + key);
+        nameElement.appendChild(nameText);
+        nameElement.setAttribute("type","circle");
+        nameElement.setAttribute("value","0");
+        tableElement.appendChild(nameElement);
+        for(var i = 0; i < recommendations[key].length; i++) {
+            var resultElement = document.createElement("li");
+            var resultText = document.createTextNode(recommendations[key][i].productId + " " + recommendations[key][i].score);
+            resultElement.appendChild(resultText);
+            tableElement.appendChild(resultElement);
+        }
+    }
+}
+
+//This function removes all elements from the display table
+function clearRecommendationTable(tableToClear) {
+    var length = tableToClear.children.length;
+    for(i = 0; i < length; i++) {
+    	tableToClear.children[0].parentNode.removeChild(tableToClear.children[0]);
     }
 }
 

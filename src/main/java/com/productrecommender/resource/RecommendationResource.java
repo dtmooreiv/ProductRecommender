@@ -1,6 +1,7 @@
 package com.productrecommender.resource;
 
 import com.productrecommender.core.Recommendation;
+import com.productrecommender.params.LongArrayParam;
 import com.productrecommender.services.scheduled.Preprocessor;
 import io.dropwizard.jersey.params.IntParam;
 import io.dropwizard.jersey.params.LongParam;
@@ -20,6 +21,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -38,14 +40,14 @@ public class RecommendationResource {
     }
 
     @GET
-    public ArrayList<Recommendation> recommend(@PathParam("siteId") LongParam siteId,
-                                               @PathParam("contactId") LongParam contactId,
-                                               @QueryParam("count") @DefaultValue("10")IntParam count) {
+    public HashMap<Long, ArrayList<Recommendation>> recommend(@PathParam("siteId") LongParam siteId,
+                                                                @PathParam("contactId") LongArrayParam contactIds,
+                                                                @QueryParam("count") @DefaultValue("10")IntParam count) {
 
-        logger.info(count + " recommendations requested for site id " + siteId + " contact id "  + contactId);
+        logger.info(count + " recommendations requested for site id " + siteId + " contact id "  + contactIds);
 
         Jedis conn = pool.getResource();
-        ArrayList<Recommendation> recommendations = new ArrayList<>();
+        HashMap<Long, ArrayList<Recommendation>> recommendations = new HashMap<>();
 
         try {
             //Check to see if we have data for this site
@@ -53,20 +55,28 @@ public class RecommendationResource {
                 return recommendations;
             }
 
-            //Get list of recommendations
-            List<RecommendedItem> recommendedItems = recommenders.get(siteId.get()).recommend(contactId.get(), count.get());
-
-            //Turn list of recommendations into a JSON arraylist
-            for(RecommendedItem item: recommendedItems) {
-                String productId = conn.hget(Preprocessor.productCatalog + siteId, Long.toString(item.getItemID()));
-                String score = Float.toString(item.getValue());
-                recommendations.add(new Recommendation(productId, score));
+            //Get list of recommendations per contact id given
+            for (long contactId: contactIds.get()) {
+                recommendations.put(contactId, recommendationsForContactId(conn, siteId.get(), contactId, count.get()));
             }
         } catch (TasteException e) {
             e.printStackTrace();
         }
 
         pool.returnResource(conn);
+        return recommendations;
+    }
+
+    private ArrayList<Recommendation> recommendationsForContactId(Jedis conn, long siteId, long contactId, int count) throws TasteException {
+        ArrayList<Recommendation> recommendations = new ArrayList<>();
+        List<RecommendedItem> recommendedItems = recommenders.get(siteId).recommend(contactId, count);
+
+        //Turn list of recommendations into a JSON arraylist
+        for (RecommendedItem item : recommendedItems) {
+            String productId = conn.hget(Preprocessor.productCatalog + siteId, Long.toString(item.getItemID()));
+            String score = Float.toString(item.getValue());
+            recommendations.add(new Recommendation(productId, score));
+        }
         return recommendations;
     }
 }
