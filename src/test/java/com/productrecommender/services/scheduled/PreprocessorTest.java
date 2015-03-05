@@ -26,7 +26,7 @@ public class PreprocessorTest {
 
     @AfterClass
     public static void tearDownAfterClass() throws Exception {
-        //TODO close connections?
+        conn.close();
     }
 
     @Test

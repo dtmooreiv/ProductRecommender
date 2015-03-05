@@ -15,7 +15,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.After;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -51,7 +50,7 @@ public class RecommendationResourceTest {
 
     @AfterClass
     public static void tearDownAfterClass() throws Exception {
-        //TODO Need to see if I need to close any of the setup stuff
+        conn.close();
     }
 
     @Test
