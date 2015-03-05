@@ -9,10 +9,6 @@ public class LongArrayParam extends AbstractParam<ArrayList<Long>> {
         super(input);
     }
 
-    protected String errorMessage(String input, Exception e) {
-        return '\"' + input + "\" is not formatted properly.";
-    }
-
     protected ArrayList<Long> parse(String input) {
         ArrayList<Long> output = new ArrayList<>();
         for (String s: input.split(",")){
