@@ -13,7 +13,7 @@ public class PreprocessorTest {
     private final static Jedis conn = new Jedis("localhost");
     private static Preprocessor prep;
 
-    private final static String testFileName = "testFiles/testPreProcessor";
+    private final static String testFileName = "src/data/test/testPreProcessor";
     private final static String[] CreatedTestFileNames = {"order_history_111","order_history_222","order_history_333"};
 
     private final static int numLines111 = 12;
