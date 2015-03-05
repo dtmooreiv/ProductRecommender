@@ -6,6 +6,8 @@ import com.productrecommender.params.LongArrayParam;
 import io.dropwizard.jersey.params.IntParam;
 import io.dropwizard.jersey.params.LongParam;
 import org.apache.mahout.cf.taste.impl.recommender.CachingRecommender;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
@@ -14,7 +16,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -22,34 +23,55 @@ import static org.junit.Assert.*;
 public class RecommendationResourceTest {
 
     private final static Jedis conn = new Jedis("localhost");
-    private ProductRecommenderConfiguration productRecommenderConfiguration;
-    private Map<Long, CachingRecommender> recommenders;
-    private JedisPool pool;
-    private RecommendationResource recommendationResource;
+    private static ProductRecommenderConfiguration productRecommenderConfiguration;
+    private static Map<Long, CachingRecommender> recommenders;
+    private static JedisPool pool;
+    private static RecommendationResource recommendationResource;
 
     private HashMap<Long, ArrayList<Recommendation>> testRecommendations;
 
     private final static LongParam siteId = new LongParam("9621");
-    private final static LongArrayParam singelContactId = new LongArrayParam("69750106");
-    private final static IntParam count = new IntParam("10");
 
-    @Before
-    public void setUp() throws Exception {
+    private final static long[] contactIds = {69750106L,111547205L,1L};
+    private final static LongArrayParam singleContactId = new LongArrayParam(Long.toString(contactIds[0]));
+    private final static LongArrayParam multipleContactId = new LongArrayParam(contactIds[0] + "," + contactIds[1]);
+    private final static LongArrayParam NoResultsContactId = new LongArrayParam(Long.toString(contactIds[2]));
+
+    private final static int count = 10;
+    private final static IntParam countParam = new IntParam(Integer.toString(count));
+
+
+    @BeforeClass
+    public static void setUpBeforeClass() throws Exception {
         productRecommenderConfiguration = new ProductRecommenderConfiguration();
         recommenders = productRecommenderConfiguration.getRecommenders(conn);
         pool = productRecommenderConfiguration.getPool();
         recommendationResource = new RecommendationResource(pool, recommenders);
     }
 
-    @After
-    public void tearDown() throws Exception {
-
+    @AfterClass
+    public static void tearDownAfterClass() throws Exception {
+        //TODO Need to see if I need to close any of the setup stuff
     }
 
     @Test
-    public void testRecommendSingelContactId() throws Exception {
-        testRecommendations = recommendationResource.recommend(siteId,singelContactId,count);
+    public void testRecommendSingleContactId() throws Exception {
+        testRecommendations = recommendationResource.recommend(siteId, singleContactId, countParam);
         assertEquals(1,testRecommendations.size());
-        //TODO
+        assertEquals(count,testRecommendations.get(contactIds[0]).size());
+    }
+
+    @Test
+    public void testRecommendMultipleContactId() throws Exception {
+        testRecommendations = recommendationResource.recommend(siteId, multipleContactId, countParam);
+        assertEquals(2,testRecommendations.size());
+        assertEquals(count,testRecommendations.get(contactIds[0]).size());
+        assertEquals(count,testRecommendations.get(contactIds[1]).size());
+    }
+
+    @Test
+    public void testRecommendNoResultsContactId() throws Exception {
+        testRecommendations = recommendationResource.recommend(siteId, NoResultsContactId, countParam);
+        assertEquals(0,testRecommendations.size());
     }
 }
