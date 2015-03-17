@@ -9,38 +9,64 @@ import java.util.Map;
 import java.util.Scanner;
 
 public class Preprocessor {
+
     private final Jedis conn;
+
     private HashMap<Long,LinkedList<String>> siteBasedOrderHistory;
     private HashMap<Long,HashMap<String, Integer>> siteBasedProductMappings;
-    public static final String output = "order_history_";
-    public static final String productCatalog = "product_catalog_";
-    public static final String site_set = "site_set";
 
-    public Preprocessor(Jedis conn) {
+    private String orderHistoryOutputFile;
+    private String productCatalogTableName;
+    private String siteSetName;
+
+    public Preprocessor(Jedis conn, String orderHistoryOutputFile, String productCatalogTableName, String siteSetName) {
         this.conn = conn;
+        this.orderHistoryOutputFile = orderHistoryOutputFile;
+        this.productCatalogTableName = productCatalogTableName;
+        this.siteSetName = siteSetName;
     }
 
-    private String getCatalogRedisTableName (Long siteId) {
-        return productCatalog + siteId.toString();
-    }
+    public void processFile(String filename) {
+        File inputFile = new File(filename);
+        try{
+            Scanner scanner = new Scanner(inputFile);
+            siteBasedOrderHistory = new HashMap<>();
+            siteBasedProductMappings = new HashMap<>();
+            while (scanner.hasNextLine()) {
+                mapToSite(scanner.nextLine());
+            }
+            writeOrderHistoryBySite();
+            writeProductCatalogsBySite();
+        }
+        catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
 
-    private String siteFileName (Long siteId) { return output + siteId.toString();}
+    }
 
     private void mapToSite(String line) {
+        // split line into it individual parts which are siteId, contactId, productId
         String [] ids = line.split(",");
+
+        // Check that the contactId is not empty if so don't process line
         if(ids[1].equalsIgnoreCase("\\N")) {
             return;
         }
+
+        // get any existing orderData or initialize a new list based on the current siteId
         long siteId = Long.parseLong(ids[0]);
         LinkedList<String> orderData;
         if(siteBasedOrderHistory.containsKey(siteId)){
             orderData = siteBasedOrderHistory.get(siteId);
         }
         else {
-            orderData = new LinkedList<String>();
+            orderData = new LinkedList<>();
         }
-        String out = processLine(siteId, ids[1], ids[2]);
-        orderData.add(out);
+
+        // add order data to the list
+        orderData.add(processLine(siteId, ids[1], ids[2]));
+
+        // save changes to the order data list
         siteBasedOrderHistory.put(siteId, orderData);
     }
 
@@ -49,42 +75,26 @@ public class Preprocessor {
     }
 
     private String processProductId(long siteId, String productId) {
-
+        // get any existing productData or initialize a new list based on the current siteId
         HashMap<String,Integer> perSiteProductMappings;
         if(siteBasedProductMappings.containsKey(siteId)) {
             perSiteProductMappings = siteBasedProductMappings.get(siteId);
-        }
-        else {
-            perSiteProductMappings = new HashMap<String,Integer>();
+        } else {
+            perSiteProductMappings = new HashMap<>();
             siteBasedProductMappings.put(siteId, perSiteProductMappings);
         }
 
+        // add productData for current item if it does not yet exist
         if(!perSiteProductMappings.containsKey(productId)) {
             perSiteProductMappings.put(productId, perSiteProductMappings.size());
         }
 
+        // return the value mapped to the current productId
         return perSiteProductMappings.get(productId).toString();
     }
 
-    public void readFile(String filename) {
-        File inputFile = new File(filename);
-        try{
-            Scanner scanner = new Scanner(inputFile);
-            siteBasedOrderHistory = new HashMap<Long,LinkedList<String>>();
-            siteBasedProductMappings = new HashMap<Long,HashMap<String,Integer>>();
-            while (scanner.hasNextLine()) {
-                mapToSite(scanner.nextLine());
-            }
-            writeOrderHistoryBySite();
-            writeProductCatalogs();
-        }
-        catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-
-    }
-
-    private void writeProductCatalogs() {
+    // Takes all processed product data and saves it to redis by the site id
+    private void writeProductCatalogsBySite() {
         for (Map.Entry<Long,HashMap<String, Integer>> productMappingPerSite : siteBasedProductMappings.entrySet())
         {
             String redisHashName = getCatalogRedisTableName(productMappingPerSite.getKey());
@@ -94,10 +104,16 @@ public class Preprocessor {
         }
     }
 
+    // returns redis table name for saving the product data by siteId
+    private String getCatalogRedisTableName (Long siteId) {
+        return productCatalogTableName + siteId.toString();
+    }
+
+    // Takes all processed order data and writes it to individual files by the site id
     private void writeOrderHistoryBySite() {
         for (Map.Entry<Long,LinkedList<String>> entry : siteBasedOrderHistory.entrySet())
         {
-            conn.sadd(site_set, entry.getKey().toString());
+            conn.sadd(siteSetName, entry.getKey().toString());
             String siteFileName = siteFileName(entry.getKey());
             File out;
             FileOutputStream fos;
@@ -111,15 +127,18 @@ public class Preprocessor {
                     bw.newLine();
                 }
                 bw.close();
-            }
-            catch (FileNotFoundException e) {
+            } catch (FileNotFoundException e) {
                 e.printStackTrace();
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 e.printStackTrace();
             }
 
         }
+    }
+
+    // return path/filename for the saving the order data by the siteId
+    private String siteFileName (Long siteId) {
+        return orderHistoryOutputFile + siteId.toString();
     }
 
 }

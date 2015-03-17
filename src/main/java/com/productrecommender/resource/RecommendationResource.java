@@ -2,7 +2,6 @@ package com.productrecommender.resource;
 
 import com.productrecommender.core.Recommendation;
 import com.productrecommender.params.LongArrayParam;
-import com.productrecommender.services.scheduled.Preprocessor;
 import io.dropwizard.jersey.params.IntParam;
 import io.dropwizard.jersey.params.LongParam;
 import org.apache.mahout.cf.taste.common.TasteException;
@@ -29,20 +28,27 @@ import java.util.Map;
 @Produces(MediaType.APPLICATION_JSON)
 public class RecommendationResource {
 
-    final static Logger logger = LoggerFactory.getLogger(RecommendationResource.class);
+    private final static Logger logger = LoggerFactory.getLogger(RecommendationResource.class);
 
     private final JedisPool pool;
     private final Map<Long, CachingRecommender> recommenders;
+    private final String siteSetName;
+    private final String productCatalogTableName;
 
-    public RecommendationResource(JedisPool pool, Map<Long, CachingRecommender> recommenders) {
+    public RecommendationResource(JedisPool pool,
+                                  Map<Long, CachingRecommender> recommenders,
+                                  String siteSetName,
+                                  String productCatalogTableName) {
         this.pool = pool;
         this.recommenders = recommenders;
+        this.siteSetName = siteSetName;
+        this.productCatalogTableName = productCatalogTableName;
     }
 
     @GET
     public HashMap<Long, ArrayList<Recommendation>> recommend(@PathParam("siteId") LongParam siteId,
-                                                                @PathParam("contactId") LongArrayParam contactIds,
-                                                                @QueryParam("count") @DefaultValue("10")IntParam count) {
+                                                              @PathParam("contactId") LongArrayParam contactIds,
+                                                              @QueryParam("count") @DefaultValue("10")IntParam count) {
 
         logger.info(count + " recommendations requested for site id " + siteId + " contact id "  + contactIds);
 
@@ -51,7 +57,7 @@ public class RecommendationResource {
 
         try {
             //Check to see if we have data for this site
-            if(!conn.sismember(Preprocessor.site_set, siteId.toString())) {
+            if(!conn.sismember(siteSetName, siteId.toString())) {
                 return recommendations;
             }
 
@@ -73,7 +79,7 @@ public class RecommendationResource {
 
         //Turn list of recommendations into a JSON arraylist
         for (RecommendedItem item : recommendedItems) {
-            String productId = conn.hget(Preprocessor.productCatalog + siteId, Long.toString(item.getItemID()));
+            String productId = conn.hget(productCatalogTableName + siteId, Long.toString(item.getItemID()));
             String score = Float.toString(item.getValue());
             recommendations.add(new Recommendation(productId, score));
         }

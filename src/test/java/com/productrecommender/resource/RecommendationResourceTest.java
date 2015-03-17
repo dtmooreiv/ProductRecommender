@@ -3,6 +3,7 @@ package com.productrecommender.resource;
 import com.productrecommender.ProductRecommenderConfiguration;
 import com.productrecommender.core.Recommendation;
 import com.productrecommender.params.LongArrayParam;
+import com.productrecommender.services.scheduled.Preprocessor;
 import io.dropwizard.jersey.params.IntParam;
 import io.dropwizard.jersey.params.LongParam;
 import org.apache.mahout.cf.taste.impl.recommender.CachingRecommender;
@@ -22,15 +23,16 @@ import static org.junit.Assert.*;
 public class RecommendationResourceTest {
 
     private final static Jedis conn = new Jedis("localhost");
-    private static ProductRecommenderConfiguration productRecommenderConfiguration;
-    private static Map<Long, CachingRecommender> recommenders;
-    private static JedisPool pool;
     private static RecommendationResource recommendationResource;
+
+    private final static String testInputFile = "src/data/test/input/testRecommendationResource";
+    private final static String testOutputFile = "src/data/test/output/rectest_order_history_";
+    private final static String testProductCatalogTableName = "rectest_product_catalog_";
+    private final static String testSiteSetName = "rectest_site_set";
 
     private HashMap<Long, ArrayList<Recommendation>> testRecommendations;
 
     private final static LongParam siteId = new LongParam("9621");
-
     private final static long[] contactIds = {69750106L,111547205L,1L};
     private final static LongArrayParam singleContactId = new LongArrayParam(Long.toString(contactIds[0]));
     private final static LongArrayParam multipleContactId = new LongArrayParam(contactIds[0] + "," + contactIds[1]);
@@ -42,10 +44,12 @@ public class RecommendationResourceTest {
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        productRecommenderConfiguration = new ProductRecommenderConfiguration();
-        recommenders = productRecommenderConfiguration.getRecommenders(conn);
-        pool = productRecommenderConfiguration.getPool();
-        recommendationResource = new RecommendationResource(pool, recommenders);
+        Preprocessor prep = new Preprocessor(conn, testOutputFile, testProductCatalogTableName, testSiteSetName);
+        prep.processFile(testInputFile);
+        ProductRecommenderConfiguration productRecommenderConfiguration = new ProductRecommenderConfiguration();
+        Map<Long, CachingRecommender> recommenders = productRecommenderConfiguration.getRecommenders(conn, testSiteSetName, testOutputFile);
+        JedisPool pool = productRecommenderConfiguration.getPool();
+        recommendationResource = new RecommendationResource(pool, recommenders, testSiteSetName, testProductCatalogTableName);
     }
 
     @AfterClass

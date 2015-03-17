@@ -1,6 +1,5 @@
 package com.productrecommender;
 
-import com.productrecommender.services.scheduled.Preprocessor;
 import io.dropwizard.Configuration;
 import org.apache.mahout.cf.taste.common.TasteException;
 import org.apache.mahout.cf.taste.impl.model.file.FileDataModel;
@@ -24,18 +23,21 @@ import java.util.Map;
 
 public class ProductRecommenderConfiguration extends Configuration{
 
-    final static Logger logger = LoggerFactory.getLogger(ProductRecommenderConfiguration.class);
+    private final static Logger logger = LoggerFactory.getLogger(ProductRecommenderConfiguration.class);
 
-    public Map<Long,CachingRecommender> getRecommenders(Jedis conn) throws IOException, TasteException {
+    public Map<Long,CachingRecommender> getRecommenders(Jedis conn,
+                                                        String siteSet,
+                                                        String dataFile) throws IOException, TasteException {
+
         HashMap<Long, CachingRecommender> recommenders = new HashMap<>();
 
         //For every site id in the site set
-        for(String _siteId: conn.smembers(Preprocessor.site_set)) {
+        for(String _siteId: conn.smembers(siteSet)) {
             try {
                 //try to parse a long
                 long siteId = Long.parseLong(_siteId);
                 //open the corresponding order_history file
-                DataModel model = new FileDataModel(new File(Preprocessor.output + siteId));
+                DataModel model = new FileDataModel(new File(dataFile + siteId));
                 //calculate the ItemSimilarity matrix
                 ItemSimilarity similarity = new LogLikelihoodSimilarity(model);
                 //make a recommender
@@ -56,7 +58,6 @@ public class ProductRecommenderConfiguration extends Configuration{
         JedisPoolConfig config = new JedisPoolConfig();
         config.setMaxTotal(1000);
 
-        JedisPool pool = new JedisPool(config, "localhost");
-        return pool;
+        return new JedisPool(config, "localhost");
     }
 }

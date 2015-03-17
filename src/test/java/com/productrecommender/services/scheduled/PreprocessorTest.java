@@ -13,26 +13,30 @@ public class PreprocessorTest {
     private final static Jedis conn = new Jedis("localhost");
     private static Preprocessor prep;
 
-    private final static String testFileName = "src/data/test/testPreProcessor";
-    private final static String[] CreatedTestFileNames = {"order_history_111","order_history_222","order_history_333"};
+    private final static String testInputFile = "src/data/test/input/testPreProcessor";
+    private final static String testOutputFile = "src/data/test/output/proctest_order_history_";
+    private final static String testProductCatalogTableName = "test_product_catalog_";
+    private final static String testSiteSetName = "test_site_set";
+
+    private final static String[] CreatedTestFileNames = {testOutputFile + 111, testOutputFile + 222, testOutputFile + 333};
 
     private final static int numLines111 = 12;
     private final static int numLines222 = 24;
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        prep = new Preprocessor(conn);
+        prep = new Preprocessor(conn, testOutputFile, testProductCatalogTableName, testSiteSetName);
     }
 
     @AfterClass
     public static void tearDownAfterClass() throws Exception {
-        conn.close();
+       conn.close();
     }
 
     @Test
     public void testReadFile() throws Exception {
         // process the files
-        prep.readFile(testFileName);
+        prep.processFile(testInputFile);
 
         File testFile111 = new File(CreatedTestFileNames[0]);
         File testFile222 = new File(CreatedTestFileNames[1]);
@@ -42,7 +46,7 @@ public class PreprocessorTest {
         Boolean ProperFilesExists = testFile111.isFile() && testFile222.isFile() && !testFile333.isFile();
         assertTrue(ProperFilesExists);
 
-        // check line count of the ones that exist
+        // check line count of the files that should exist
         Scanner test111 = new Scanner(testFile111);
         int countLines111 = 0;
         while (test111.hasNextLine()) {
@@ -60,5 +64,9 @@ public class PreprocessorTest {
         }
         test222.close();
         assertEquals(numLines222, countLines222);
+
+        // remove created files
+        testFile111.delete();
+        testFile222.delete();
     }
 }
