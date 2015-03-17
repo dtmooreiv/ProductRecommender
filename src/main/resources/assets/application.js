@@ -9,29 +9,117 @@ function getRecommendations() {
 	var response = httpGet("/api/recommend/" + siteId + "/" + contactId + "?count=" + count);
 
 	//Get and Remove all previous results
-	var orderedList = document.getElementById("results");
-	clearRecommendationTable(orderedList);
+	var resultsTable = document.getElementById("results");
+	clearRecommendationTable(resultsTable);
 
     //Add a list item containing the productId and score to the results ordered list for display
-    createRecommendationTable(response, orderedList);
+    createRecommendationTable(response, resultsTable);
 }
 
 //This function builds a table for display
 function createRecommendationTable(getRequestResponse, tableElement) {
     var recommendations = JSON.parse(getRequestResponse);
     for (key in recommendations) {
-        var nameElement = document.createElement("li");
-        var nameText = document.createTextNode("ContactId: " + key);
-        nameElement.appendChild(nameText);
-        nameElement.setAttribute("type","circle");
-        nameElement.setAttribute("value","0");
-        tableElement.appendChild(nameElement);
-        for(var i = 0; i < recommendations[key].length; i++) {
-            var resultElement = document.createElement("li");
-            var resultText = document.createTextNode(recommendations[key][i].productId + " " + recommendations[key][i].score);
-            resultElement.appendChild(resultText);
-            tableElement.appendChild(resultElement);
+
+        var titleContainer = document.createElement("div");
+        titleContainer.className = "container";
+        titleContainer.innerHTML = "<br><h1> Recommendations for Contact ID: " + key + "</h1><br><br>";
+        titleContainer.align = "center";
+        tableElement.appendChild(titleContainer);
+
+        var titleRow = document.createElement("div");
+        titleRow.className = "row";
+
+        var prodImageCell = document.createElement("div");
+        prodImageCell.className = "col-md-2";
+        prodImageCell.appendChild(document.createTextNode("Image"));
+
+        var prodTitleCell = document.createElement("div");
+        prodTitleCell.className = "col-md-2";
+        prodTitleCell.appendChild(document.createTextNode("Title"));
+
+        var prodIDCell = document.createElement("div");
+        prodIDCell.className = "col-md-2";
+        prodIDCell.appendChild(document.createTextNode("Product ID"));
+
+        var prodScoreCell = document.createElement("div");
+        prodScoreCell.className = "col-md-2";
+        prodScoreCell.appendChild(document.createTextNode("Score"));
+
+        var prodCatCell = document.createElement("div");
+        prodCatCell.className = "col-md-2";
+        prodCatCell.appendChild(document.createTextNode("Category"));
+
+        var prodDescCell = document.createElement("div");
+        prodDescCell.className = "col-md-2";
+        prodDescCell.appendChild(document.createTextNode("Description"));
+
+        titleRow.appendChild(prodImageCell);
+        titleRow.appendChild(prodTitleCell);
+        titleRow.appendChild(prodIDCell);
+        titleRow.appendChild(prodScoreCell);
+        titleRow.appendChild(prodCatCell);
+        titleRow.appendChild(prodDescCell);
+
+        tableElement.appendChild(titleRow);
+        tableElement.appendChild(document.createElement("br"));
+        tableElement.appendChild(document.createElement("br"));
+        tableElement.appendChild(document.createElement("br"));
+
+
+
+        for (var i = 0; i < recommendations[key].length; i++){
+
+            var resultRow = document.createElement("div");
+            resultRow.className = "row";
+
+            var imgCol = document.createElement("div");
+            imgCol.className = "col-md-2";
+            var prodLink = document.createElement("a");
+            prodLink.href = recommendations[key][i].productUrl;
+            var prodImg = document.createElement("img");
+            prodImg.className = "img-responsive";
+            prodImg.src = recommendations[key][i].imageUrl;
+            prodLink.appendChild(prodImg);
+            imgCol.appendChild(prodLink);
+            //imgCol.innerHTML = "<a href=\"" + recommendations[key][i].productUrl + "><img src=\"" + recommendations[key][i].imageUrl + "></a>";
+
+            var titleCol = document.createElement("div");
+            titleCol.className = "col-md-2";
+            titleCol.appendChild(document.createTextNode(recommendations[key][i].title));
+
+            var prodIDCol = document.createElement("div");
+            prodIDCol.className = "col-md-2";
+            prodIDCol.appendChild(document.createTextNode(recommendations[key][i].productId));
+
+            var prodScoreCol = document.createElement("div");
+            prodScoreCol.className = "col-md-2";
+            prodScoreCol.appendChild(document.createTextNode(recommendations[key][i].score));
+
+            var catCol = document.createElement("div");
+            catCol.className = "col-md-2";
+            catCol.appendChild(document.createTextNode(recommendations[key][i].category));
+
+            var descCol = document.createElement("div");
+            descCol.className = "col-md-2";
+            descCol.appendChild(document.createTextNode(recommendations[key][i].description));
+
+            resultRow.appendChild(imgCol);
+            resultRow.appendChild(titleCol);
+            resultRow.appendChild(prodIDCol);
+            resultRow.appendChild(prodScoreCol);
+            resultRow.appendChild(catCol);
+            resultRow.appendChild(descCol);
+
+            tableElement.appendChild(resultRow);
+
+            tableElement.appendChild(document.createElement("br"));
+            tableElement.appendChild(document.createElement("br"));
+
+
+
         }
+
     }
 }
 
