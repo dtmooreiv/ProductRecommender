@@ -47,8 +47,8 @@ public class RecommendationResource {
 
     @GET
     public HashMap<Long, ArrayList<Recommendation>> recommend(@PathParam("siteId") LongParam siteId,
-                                                                @PathParam("contactId") LongArrayParam contactIds,
-                                                                @QueryParam("count") @DefaultValue("10")IntParam count) {
+                                                              @PathParam("contactId") LongArrayParam contactIds,
+                                                              @QueryParam("count") @DefaultValue("10")IntParam count) {
 
         logger.info(count + " recommendations requested for site id " + siteId + " contact id "  + contactIds);
 

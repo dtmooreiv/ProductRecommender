@@ -10,7 +10,6 @@ import static org.junit.Assert.*;
 public class LongArrayParamTest {
 
     private ArrayList<Long> testArray = new ArrayList<>();
-    private LongArrayParam testParam;
 
     private final static String testArrayString = "555,444,333,222,111";
 
@@ -25,7 +24,7 @@ public class LongArrayParamTest {
 
     @Test
     public void testParse() throws Exception {
-        testParam = new LongArrayParam(testArrayString);
+        LongArrayParam testParam = new LongArrayParam(testArrayString);
         assertEquals(testArray,testParam.parse(testArrayString));
     }
 }
