@@ -25,8 +25,8 @@ public class RecommendationResourceTest {
     private final static Jedis conn = new Jedis("localhost");
     private static RecommendationResource recommendationResource;
 
-    private final static String testInputFile = "src/data/test/input/testRecommendationResource";
-    private final static String testOutputFile = "src/data/test/output/rectest_order_history_";
+    private final static String testInputFile = "src/test/data/input/testRecommendationResource";
+    private final static String testOutputFile = "src/test/data/output/rectest_order_history_";
     private final static String testProductCatalogTableName = "rectest_product_catalog_";
     private final static String testSiteSetName = "rectest_site_set";
 
@@ -54,6 +54,7 @@ public class RecommendationResourceTest {
 
     @AfterClass
     public static void tearDownAfterClass() throws Exception {
+        conn.flushAll();
         conn.close();
     }
 

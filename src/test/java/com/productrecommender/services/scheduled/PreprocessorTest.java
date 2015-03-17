@@ -11,10 +11,9 @@ import static org.junit.Assert.*;
 public class PreprocessorTest {
 
     private final static Jedis conn = new Jedis("localhost");
-    private static Preprocessor prep;
 
-    private final static String testInputFile = "src/data/test/input/testPreProcessor";
-    private final static String testOutputFile = "src/data/test/output/proctest_order_history_";
+    private final static String testInputFile = "src/test/data/input/testPreProcessor";
+    private final static String testOutputFile = "src/test/data/output/proctest_order_history_";
     private final static String testProductCatalogTableName = "test_product_catalog_";
     private final static String testSiteSetName = "test_site_set";
 
@@ -25,18 +24,19 @@ public class PreprocessorTest {
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        prep = new Preprocessor(conn, testOutputFile, testProductCatalogTableName, testSiteSetName);
+        // process the files
+        Preprocessor prep = new Preprocessor(conn, testOutputFile, testProductCatalogTableName, testSiteSetName);
+        prep.processFile(testInputFile);
     }
 
     @AfterClass
     public static void tearDownAfterClass() throws Exception {
-       conn.close();
+        conn.flushAll();
+        conn.close();
     }
 
     @Test
     public void testReadFile() throws Exception {
-        // process the files
-        prep.processFile(testInputFile);
 
         File testFile111 = new File(CreatedTestFileNames[0]);
         File testFile222 = new File(CreatedTestFileNames[1]);
