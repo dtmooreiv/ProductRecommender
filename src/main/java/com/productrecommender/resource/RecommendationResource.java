@@ -52,10 +52,10 @@ public class RecommendationResource {
 
         logger.info(count + " recommendations requested for site id " + siteId + " contact id "  + contactIds);
 
-        Jedis conn = pool.getResource();
+
         HashMap<Long, ArrayList<Recommendation>> recommendations = new HashMap<>();
 
-        try {
+        try (Jedis conn = pool.getResource()){
             //Check to see if we have data for this site
             if(!conn.sismember(siteSetName, siteId.toString())) {
                 return recommendations;
@@ -69,7 +69,6 @@ public class RecommendationResource {
             e.printStackTrace();
         }
 
-        pool.returnResource(conn);
         return recommendations;
     }
 
