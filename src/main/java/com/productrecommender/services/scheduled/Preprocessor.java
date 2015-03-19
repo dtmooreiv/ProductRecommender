@@ -12,133 +12,149 @@ public class Preprocessor {
 
     private final Jedis conn;
 
-    private HashMap<Long,LinkedList<String>> siteBasedOrderHistory;
-    private HashMap<Long,HashMap<String, Integer>> siteBasedProductMappings;
+    private HashMap<String, LinkedList<String>> siteBasedOrderHistory;
+    private HashMap<String, HashMap<String, String>> siteBasedProductCatalog;
 
-    private String orderHistoryOutputFile;
-    private String productCatalogTableName;
+    private String inputFilesPath;
+    private String outputFilesPath;
     private String siteSetName;
 
-    public Preprocessor(Jedis conn, String orderHistoryOutputFile, String productCatalogTableName, String siteSetName) {
+    public Preprocessor(Jedis conn, String inputFilesPath, String outputFilesPath, String siteSetName) {
         this.conn = conn;
-        this.orderHistoryOutputFile = orderHistoryOutputFile;
-        this.productCatalogTableName = productCatalogTableName;
+        this.inputFilesPath = inputFilesPath;
+        this.outputFilesPath = outputFilesPath;
         this.siteSetName = siteSetName;
+
+        this.siteBasedOrderHistory = new HashMap<>();
+        this.siteBasedProductCatalog = new HashMap<>();
     }
 
-    public void processFile(String filename) {
-        File inputFile = new File(filename);
-        try{
-            Scanner scanner = new Scanner(inputFile);
-            siteBasedOrderHistory = new HashMap<>();
-            siteBasedProductMappings = new HashMap<>();
+    public void processFiles(String orderHistoryInput, String orderHistoryPrefix, String productCatalogPrefix) {
+        processOrderHistory(orderHistoryInput);
+        processProductCatalog(productCatalogPrefix);
+        storeOrderHistoryBySite(orderHistoryPrefix);
+        storeProductCatalogsBySite(productCatalogPrefix);
+    }
+
+    // ++++++++++++++++++++++++++++++++++++++++++++++ORDERHISTORY+++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    private void processOrderHistory(String inputFile) {
+        try {
+            File input = new File(inputFilesPath + inputFile);
+            Scanner scanner = new Scanner(input);
             while (scanner.hasNextLine()) {
-                mapToSite(scanner.nextLine());
+                processOrderHistoryLine(scanner.nextLine());
             }
-            writeOrderHistoryBySite();
-            writeProductCatalogsBySite();
-        }
-        catch (FileNotFoundException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 
-    private void mapToSite(String line) {
-        // split line into it individual parts which are siteId, contactId, productId
-        String [] ids = line.split(",");
+    private void processOrderHistoryLine(String line) {
+        // Split line into tokens: siteId, contactId, productId
+        String [] token = line.split(",");
 
-        // Check that the contactId is not empty if so don't process line
-        if(ids[1].equalsIgnoreCase("\\N")) {
+        // Check that the contactId is not empty, if so don't process line
+        if(token[1].equalsIgnoreCase("\\N")) {
             return;
         }
 
-        // get any existing orderData or initialize a new list based on the current siteId
-        long siteId = Long.parseLong(ids[0]);
+        // Get any existing data for current site
         LinkedList<String> orderData;
-        if(siteBasedOrderHistory.containsKey(siteId)){
-            orderData = siteBasedOrderHistory.get(siteId);
-        }
-        else {
+        if(siteBasedOrderHistory.containsKey(token[0])){
+            orderData = siteBasedOrderHistory.get(token[0]);
+        } else {
             orderData = new LinkedList<>();
         }
 
-        // add order data to the list
-        orderData.add(processLine(siteId, ids[1], ids[2]));
+        // Add order data to the list
+        orderData.add(token[1] + "," + token[2].hashCode());
 
-        // save changes to the order data list
-        siteBasedOrderHistory.put(siteId, orderData);
+        // Save changes to the order data list for the current site
+        siteBasedOrderHistory.put(token[0], orderData);
     }
 
-    private String processLine(Long siteId, String contactId, String productId ) {
-        return contactId + "," + processProductId(siteId, productId);
+    // ++++++++++++++++++++++++++++++++++++++++++++++PRODUCTCATALOG+++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    private void processProductCatalog(String inputFilePrefix) {
+        try {
+            File folder = new File(inputFilesPath);
+            File[] listOfFiles = folder.listFiles();
+            if (listOfFiles != null) {
+                for (File file : listOfFiles) {
+                    if (file.isFile() && file.getName().startsWith(inputFilePrefix)) {
+                        Scanner scanner = new Scanner(file);
+                        while (scanner.hasNextLine()) {
+                            processProductCatalogLine(scanner.nextLine());
+                        }
+                    }
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
-    private String processProductId(long siteId, String productId) {
-        // get any existing productData or initialize a new list based on the current siteId
-        HashMap<String,Integer> perSiteProductMappings;
-        if(siteBasedProductMappings.containsKey(siteId)) {
-            perSiteProductMappings = siteBasedProductMappings.get(siteId);
+
+    private void processProductCatalogLine(String line) {
+        // split line into it individual parts which are siteId, contactId, productId
+        String [] token = line.split("\\t",-1);
+
+        if (token[0].equals("1000")) {
+            token[0] = "33934";
         } else {
-            perSiteProductMappings = new HashMap<>();
-            siteBasedProductMappings.put(siteId, perSiteProductMappings);
+            token[0] = "13703";
         }
 
-        // add productData for current item if it does not yet exist
-        if(!perSiteProductMappings.containsKey(productId)) {
-            perSiteProductMappings.put(productId, perSiteProductMappings.size());
+        String key = token[0] + "_" + token[1].hashCode();
+
+        // check to see if this product already exists
+        HashMap<String, String> productData;
+        if(siteBasedProductCatalog.containsKey(key)) {
+            productData = siteBasedProductCatalog.get(key);
+        } else {
+            productData = new HashMap<>();
         }
 
-        // return the value mapped to the current productId
-        return perSiteProductMappings.get(productId).toString();
+        // add product data to the hashmap
+        productData.put("productId",token[1]);
+        productData.put("title",token[2]);
+        productData.put("productUrl",token[3]);
+        productData.put("imageUrl",token[4]);
+        productData.put("category",token[5]);
+        productData.put("description",token[6]);
+
+        siteBasedProductCatalog.put(key, productData);
     }
+
+    // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     // Takes all processed product data and saves it to redis by the site id
-    private void writeProductCatalogsBySite() {
-        for (Map.Entry<Long,HashMap<String, Integer>> productMappingPerSite : siteBasedProductMappings.entrySet())
-        {
-            String redisHashName = getCatalogRedisTableName(productMappingPerSite.getKey());
-            for(Map.Entry<String, Integer> product : productMappingPerSite.getValue().entrySet()) {
-                conn.hset(redisHashName, product.getValue().toString(), product.getKey());
-            }
+    private void storeProductCatalogsBySite(String keyPrefix) {
+        for (Map.Entry<String,HashMap<String, String>> entry : siteBasedProductCatalog.entrySet()) {
+            String key = keyPrefix + entry.getKey();
+            HashMap<String, String> product = entry.getValue();
+            conn.hmset(key, product);
         }
-    }
-
-    // returns redis table name for saving the product data by siteId
-    private String getCatalogRedisTableName (Long siteId) {
-        return productCatalogTableName + siteId.toString();
     }
 
     // Takes all processed order data and writes it to individual files by the site id
-    private void writeOrderHistoryBySite() {
-        for (Map.Entry<Long,LinkedList<String>> entry : siteBasedOrderHistory.entrySet())
-        {
-            conn.sadd(siteSetName, entry.getKey().toString());
-            String siteFileName = siteFileName(entry.getKey());
-            File out;
-            FileOutputStream fos;
-            BufferedWriter bw;
+    private void storeOrderHistoryBySite(String outputFilePrefix) {
+        for (Map.Entry<String,LinkedList<String>> entry : siteBasedOrderHistory.entrySet()) {
+            conn.sadd(siteSetName, entry.getKey());
+            String fileName = outputFilesPath + outputFilePrefix + entry.getKey();
             try {
-                out = new File(siteFileName);
-                fos = new FileOutputStream(out);
-                bw = new BufferedWriter(new OutputStreamWriter(fos));
+                File out = new File(fileName);
+                FileOutputStream fos = new FileOutputStream(out);
+                BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fos));
                 for(String line: entry.getValue()) {
                     bw.write(line);
                     bw.newLine();
                 }
                 bw.close();
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
             } catch (IOException e) {
                 e.printStackTrace();
             }
-
         }
     }
-
-    // return path/filename for the saving the order data by the siteId
-    private String siteFileName (Long siteId) {
-        return orderHistoryOutputFile + siteId.toString();
-    }
-
 }

@@ -2,6 +2,8 @@ package com.productrecommender.core;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.Map;
+
 public class Recommendation {
 
     private final static String titleDefault = "Default Title";
@@ -26,8 +28,14 @@ public class Recommendation {
         this(productId, titleDefault, productUrlDefault, imageUrlDefault, categoryDefault, descriptionDefault, score);
     }
 
-    public Recommendation(String[] productInfo, String score) {
-        this(productInfo[0], productInfo[1], productInfo[2], productInfo[3], productInfo[4], productInfo[5], score);
+    public Recommendation(Map<String, String> productInfo, String score) {
+        this(productInfo.get("productId"),
+                productInfo.get("title"),
+                productInfo.get("productUrl"),
+                productInfo.get("imageUrl"),
+                productInfo.get("category"),
+                productInfo.get("description"),
+                score);
     }
 
     public Recommendation(String productId, String title, String productUrl, String imageUrl, String category, String description, String score) {

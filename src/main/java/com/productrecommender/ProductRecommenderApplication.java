@@ -21,9 +21,11 @@ public class ProductRecommenderApplication extends Application<ProductRecommende
 
     private final static Jedis conn = new Jedis("localhost");
 
-    private final static String orderHistoryInputFile = "src/data/input/skus_without_urls";
-    private final static String orderHistoryOutputFile = "src/data/output/order_history_";
-    private final static String productCatalogTableName = "product_catalog_";
+    private final static String inputFilesPath = "src/data/input/";
+    private final static String outputFilesPath = "src/data/output/";
+    private final static String orderHistoryInputFile = "skus_without_urls";
+    private final static String orderHistoryPrefix = "order_history_";
+    private final static String productCatalogPrefix = "product_catalog_";
     private final static String siteSetName = "site_set";
 
     public static void main(String[] args) throws Exception {
@@ -32,8 +34,8 @@ public class ProductRecommenderApplication extends Application<ProductRecommende
 
     @Override
     public void initialize(Bootstrap<ProductRecommenderConfiguration> bootstrap) {
-        Preprocessor prep = new Preprocessor(conn,orderHistoryOutputFile,productCatalogTableName,siteSetName);
-        prep.processFile(orderHistoryInputFile);
+        Preprocessor prep = new Preprocessor(conn, inputFilesPath, outputFilesPath, siteSetName);
+        prep.processFiles(orderHistoryInputFile, orderHistoryPrefix, productCatalogPrefix);
         bootstrap.addBundle(new AssetsBundle("/assets", "/", "index.html"));
     }
 
@@ -41,11 +43,11 @@ public class ProductRecommenderApplication extends Application<ProductRecommende
     public void run(ProductRecommenderConfiguration productRecommenderConfiguration, Environment environment) throws Exception {
         logger.info("Started Recommending");
 
-        Map<Long, CachingRecommender> recommenders = productRecommenderConfiguration.getRecommenders(conn, siteSetName, orderHistoryOutputFile);
+        Map<Long, CachingRecommender> recommenders = productRecommenderConfiguration.getRecommenders(conn, siteSetName, outputFilesPath + orderHistoryPrefix);
 
         JedisPool pool = productRecommenderConfiguration.getPool();
 
-        final RecommendationResource recommendationResource = new RecommendationResource(pool, recommenders, siteSetName, productCatalogTableName);
+        final RecommendationResource recommendationResource = new RecommendationResource(pool, recommenders, siteSetName, productCatalogPrefix);
         final RedisHealthCheck redisHealthCheck = new RedisHealthCheck();
 
         environment.jersey().setUrlPattern("/api/*");

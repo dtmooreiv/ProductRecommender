@@ -25,10 +25,12 @@ public class RecommendationResourceTest {
     private final static Jedis conn = new Jedis("localhost");
     private static RecommendationResource recommendationResource;
 
-    private final static String testInputFile = "src/test/data/input/testRecommendationResource";
-    private final static String testOutputFile = "src/test/data/output/rectest_order_history_";
-    private final static String testProductCatalogTableName = "rectest_product_catalog_";
-    private final static String testSiteSetName = "rectest_site_set";
+    private final static String inputFilesPath = "src/test/data/input/";
+    private final static String outputFilesPath = "src/test/data/output/";
+    private final static String orderHistoryInputFile = "testRecommendationResource";
+    private final static String orderHistoryPrefix = "rectest_order_history_";
+    private final static String productCatalogPrefix = "rectest_product_catalog_";
+    private final static String siteSetName = "rectest_site_set";
 
     private HashMap<Long, ArrayList<Recommendation>> testRecommendations;
 
@@ -44,12 +46,12 @@ public class RecommendationResourceTest {
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        Preprocessor prep = new Preprocessor(conn, testOutputFile, testProductCatalogTableName, testSiteSetName);
-        prep.processFile(testInputFile);
+        Preprocessor prep = new Preprocessor(conn, inputFilesPath, outputFilesPath, siteSetName);
+        prep.processFiles(orderHistoryInputFile, orderHistoryPrefix, productCatalogPrefix);
         ProductRecommenderConfiguration productRecommenderConfiguration = new ProductRecommenderConfiguration();
-        Map<Long, CachingRecommender> recommenders = productRecommenderConfiguration.getRecommenders(conn, testSiteSetName, testOutputFile);
+        Map<Long, CachingRecommender> recommenders = productRecommenderConfiguration.getRecommenders(conn, siteSetName, outputFilesPath + orderHistoryPrefix);
         JedisPool pool = productRecommenderConfiguration.getPool();
-        recommendationResource = new RecommendationResource(pool, recommenders, testSiteSetName, testProductCatalogTableName);
+        recommendationResource = new RecommendationResource(pool, recommenders, siteSetName, productCatalogPrefix);
     }
 
     @AfterClass

@@ -33,16 +33,16 @@ public class RecommendationResource {
     private final JedisPool pool;
     private final Map<Long, CachingRecommender> recommenders;
     private final String siteSetName;
-    private final String productCatalogTableName;
+    private final String productCatalogPrefix;
 
     public RecommendationResource(JedisPool pool,
                                   Map<Long, CachingRecommender> recommenders,
                                   String siteSetName,
-                                  String productCatalogTableName) {
+                                  String productCatalogPrefix) {
         this.pool = pool;
         this.recommenders = recommenders;
         this.siteSetName = siteSetName;
-        this.productCatalogTableName = productCatalogTableName;
+        this.productCatalogPrefix = productCatalogPrefix;
     }
 
     @GET
@@ -72,15 +72,20 @@ public class RecommendationResource {
         return recommendations;
     }
 
-    private ArrayList<Recommendation> recommendationsForContactId(Jedis conn, long siteId, long contactId, int count) throws TasteException {
-        ArrayList<Recommendation> recommendations = new ArrayList<>();
+    private ArrayList<Recommendation> recommendationsForContactId(Jedis conn,
+                                                                  long siteId,
+                                                                  long contactId,
+                                                                  int count) throws TasteException {
         List<RecommendedItem> recommendedItems = recommenders.get(siteId).recommend(contactId, count);
 
         //Turn list of recommendations into a JSON arraylist
+        ArrayList<Recommendation> recommendations = new ArrayList<>();
         for (RecommendedItem item : recommendedItems) {
-            String productId = conn.hget(productCatalogTableName + siteId, Long.toString(item.getItemID()));
+
+            Map<String, String> productInfo = conn.hgetAll(productCatalogPrefix + siteId + "_" + item.getItemID());
+
             String score = Float.toString(item.getValue());
-            recommendations.add(new Recommendation(productId, score));
+            recommendations.add(new Recommendation(productInfo, score));
         }
         return recommendations;
     }

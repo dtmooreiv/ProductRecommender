@@ -12,12 +12,12 @@ public class PreprocessorTest {
 
     private final static Jedis conn = new Jedis("localhost");
 
-    private final static String testInputFile = "src/test/data/input/testPreProcessor";
-    private final static String testOutputFile = "src/test/data/output/proctest_order_history_";
-    private final static String testProductCatalogTableName = "test_product_catalog_";
-    private final static String testSiteSetName = "test_site_set";
-
-    private final static String[] CreatedTestFileNames = {testOutputFile + 111, testOutputFile + 222, testOutputFile + 333};
+    private final static String inputFilesPath = "src/test/data/input/";
+    private final static String outputFilesPath = "src/test/data/output/";
+    private final static String orderHistoryInputFile = "testPreProcessor";
+    private final static String orderHistoryPrefix = "proctest_order_history_";
+    private final static String productCatalogPrefix = "proctest_product_catalog_";
+    private final static String siteSetName = "proctest_site_set";
 
     private final static int numLines111 = 12;
     private final static int numLines222 = 24;
@@ -25,8 +25,8 @@ public class PreprocessorTest {
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
         // process the files
-        Preprocessor prep = new Preprocessor(conn, testOutputFile, testProductCatalogTableName, testSiteSetName);
-        prep.processFile(testInputFile);
+        Preprocessor prep = new Preprocessor(conn, inputFilesPath, outputFilesPath, siteSetName);
+        prep.processFiles(orderHistoryInputFile, orderHistoryPrefix, productCatalogPrefix);
     }
 
     @AfterClass
@@ -38,9 +38,9 @@ public class PreprocessorTest {
     @Test
     public void testReadFile() throws Exception {
 
-        File testFile111 = new File(CreatedTestFileNames[0]);
-        File testFile222 = new File(CreatedTestFileNames[1]);
-        File testFile333 = new File(CreatedTestFileNames[2]);
+        File testFile111 = new File(outputFilesPath + orderHistoryPrefix + 111);
+        File testFile222 = new File(outputFilesPath + orderHistoryPrefix + 222);
+        File testFile333 = new File(outputFilesPath + orderHistoryPrefix + 333);
 
         // check that the right ones exist
         Boolean ProperFilesExists = testFile111.isFile() && testFile222.isFile() && !testFile333.isFile();
