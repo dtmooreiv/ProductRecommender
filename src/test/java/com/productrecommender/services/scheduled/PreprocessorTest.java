@@ -16,7 +16,7 @@ public class PreprocessorTest {
     private final static String outputFilesPath = "src/test/data/output/";
     private final static String orderHistoryInputFile = "testPreProcessor";
     private final static String orderHistoryPrefix = "proctest_order_history_";
-    private final static String productCatalogPrefix = "proctest_product_catalog_";
+    private final static String productCatalogPrefix = "product_catalog_";
     private final static String siteSetName = "proctest_site_set";
 
     private final static int numLines111 = 12;

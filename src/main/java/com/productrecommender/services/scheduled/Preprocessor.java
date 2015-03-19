@@ -72,6 +72,12 @@ public class Preprocessor {
 
         // Save changes to the order data list for the current site
         siteBasedOrderHistory.put(token[0], orderData);
+        orderHistoryProductData(token[0],token[2]);
+    }
+
+    private void orderHistoryProductData(String siteId, String productId) {
+        String productInfo = siteId + "\t" + productId + "\t\t\t\t\t";
+        processProductCatalogInfo(productInfo);
     }
 
     // ++++++++++++++++++++++++++++++++++++++++++++++PRODUCTCATALOG+++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -95,36 +101,35 @@ public class Preprocessor {
         }
     }
 
-
     private void processProductCatalogLine(String line) {
-        // split line into it individual parts which are siteId, contactId, productId
-        String [] token = line.split("\\t",-1);
-
-        if (token[0].equals("1000")) {
-            token[0] = "33934";
-        } else {
-            token[0] = "13703";
+        if (line.matches("^1000\\b.*")) {
+            line = line.replaceFirst("^1000\\b", "33934");
+        } else if (line.matches("^1001\\b.*")) {
+            line = line.replaceFirst("^1001\\b", "13703");
         }
+        processProductCatalogInfo(line);
+    }
 
-        String key = token[0] + "_" + token[1].hashCode();
+
+    private void processProductCatalogInfo(String productInfo) {
+        // split line into it individual parts which are siteId, contactId, productId
+        String [] tokens = productInfo.split("\\t",3);
+
+        String catalogKey = tokens[0];
+        String productKey = Integer.toString(tokens[1].hashCode());
 
         // check to see if this product already exists
         HashMap<String, String> productData;
-        if(siteBasedProductCatalog.containsKey(key)) {
-            productData = siteBasedProductCatalog.get(key);
+        if(siteBasedProductCatalog.containsKey(catalogKey)) {
+            productData = siteBasedProductCatalog.get(catalogKey);
         } else {
             productData = new HashMap<>();
         }
 
         // add product data to the hashmap
-        productData.put("productId",token[1]);
-        productData.put("title",token[2]);
-        productData.put("productUrl",token[3]);
-        productData.put("imageUrl",token[4]);
-        productData.put("category",token[5]);
-        productData.put("description",token[6]);
+        productData.put(productKey, tokens[1] + "\t" + tokens[2]);
 
-        siteBasedProductCatalog.put(key, productData);
+        siteBasedProductCatalog.put(catalogKey, productData);
     }
 
     // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -133,8 +138,8 @@ public class Preprocessor {
     private void storeProductCatalogsBySite(String keyPrefix) {
         for (Map.Entry<String,HashMap<String, String>> entry : siteBasedProductCatalog.entrySet()) {
             String key = keyPrefix + entry.getKey();
-            HashMap<String, String> product = entry.getValue();
-            conn.hmset(key, product);
+            HashMap<String, String> products = entry.getValue();
+            conn.hmset(key, products);
         }
     }
 

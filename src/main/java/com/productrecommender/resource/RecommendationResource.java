@@ -82,10 +82,10 @@ public class RecommendationResource {
         ArrayList<Recommendation> recommendations = new ArrayList<>();
         for (RecommendedItem item : recommendedItems) {
 
-            Map<String, String> productInfo = conn.hgetAll(productCatalogPrefix + siteId + "_" + item.getItemID());
-
+            String productInfo = conn.hget(productCatalogPrefix + siteId, Long.toString(item.getItemID()));
+            String [] data = productInfo.split("\\t",-1);
             String score = Float.toString(item.getValue());
-            recommendations.add(new Recommendation(productInfo, score));
+            recommendations.add(new Recommendation(data, score));
         }
         return recommendations;
     }
