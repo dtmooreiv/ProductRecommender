@@ -76,17 +76,28 @@ public class RecommendationResource {
                                                                   long siteId,
                                                                   long contactId,
                                                                   int count) throws TasteException {
+
+        // Use SiteId to get the recommender and then use the contact and count to get the recommendations
         List<RecommendedItem> recommendedItems = recommenders.get(siteId).recommend(contactId, count);
 
-        //Turn list of recommendations into a JSON arraylist
-        ArrayList<Recommendation> recommendations = new ArrayList<>();
-        for (RecommendedItem item : recommendedItems) {
+        // Pull out the itemIds into a string array to pass into the jedis request
+        String[] resultIds = new String[recommendedItems.size()];
+        for (int i = 0; i < recommendedItems.size(); i++) {
+            resultIds[i] = Long.toString(recommendedItems.get(i).getItemID());
+        }
+        // Use the itemIds from the recommender to get all the item data from redis
+        List<String> resultData = conn.hmget(productCatalogPrefix + siteId, resultIds);
 
-            String productInfo = conn.hget(productCatalogPrefix + siteId, Long.toString(item.getItemID()));
+        //Turn list of recommendations and its data into an arraylist of Recommendation objects
+        ArrayList<Recommendation> recommendations = new ArrayList<>();
+        for (int i = 0; i < recommendedItems.size(); i++) {
+            String productInfo = resultData.get(i);
             String [] data = productInfo.split("\\t",-1);
-            String score = Float.toString(item.getValue());
+            String score = Float.toString(recommendedItems.get(i).getValue());
             recommendations.add(new Recommendation(data, score));
         }
+
+        //return recommendations list
         return recommendations;
     }
 }
