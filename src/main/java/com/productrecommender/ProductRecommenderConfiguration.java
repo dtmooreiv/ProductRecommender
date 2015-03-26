@@ -33,7 +33,7 @@ public class ProductRecommenderConfiguration extends Configuration{
 
     private final static Logger logger = LoggerFactory.getLogger(ProductRecommenderConfiguration.class);
 
-    private final static int NUM_CACHED_SIMILAR_PRODUCT_IDS = 50;
+    public final static int NUM_CACHED_SIMILAR_PRODUCT_IDS = 50;
     final static String inputFilesPath = "src/data/input/";
     final static String outputFilesPath = "src/data/output/";
     final static String orderHistoryInputFile = "skus_without_urls";

@@ -1,5 +1,8 @@
 package com.productrecommender.resource;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.productrecommender.ProductRecommenderConfiguration;
 import com.productrecommender.core.Recommendation;
 import com.productrecommender.params.LongArrayParam;
 import com.productrecommender.params.StringArrayParam;
@@ -29,11 +32,14 @@ import java.util.Map;
 public class ProductRecommendationResource {
 
     private final static Logger logger = LoggerFactory.getLogger(ProductRecommendationResource.class);
+    public static final String PRODUCT_CACHES = "product_caches_";
 
     private final JedisPool pool;
     private final Map<Long, GenericBooleanPrefItemBasedRecommender> recommenderMap;
     private final String siteSetName;
     private final String productCatalogPrefix;
+    private final ObjectMapper mapper;
+
 
 
     public ProductRecommendationResource(JedisPool pool,
@@ -44,6 +50,7 @@ public class ProductRecommendationResource {
         this.recommenderMap = recommenderMap;
         this.siteSetName = siteSetName;
         this.productCatalogPrefix = productCatalogPrefix;
+        this.mapper = new ObjectMapper();
     }
 
     @GET
@@ -73,21 +80,49 @@ public class ProductRecommendationResource {
     private ArrayList<Recommendation> recommendationsForProductId(Jedis conn, long siteId, long productId, int count) {
         List<RecommendedItem> items = null;
         ArrayList<Recommendation> recommendations = new ArrayList<>();
-        try {
-            items = recommenderMap.get(siteId).mostSimilarItems(productId, count);
-        } catch (TasteException e) {
-            e.printStackTrace();
-        }
-        if(items == null) {
-            logger.info("Failed to get similar items for sitedId: " + siteId + " processedProductId: " + productId + " count: " + count);
-            return (ArrayList) items;
-        }
 
-        for(RecommendedItem item: items) {
-            String productInfo = conn.hget(productCatalogPrefix + siteId, Long.toString(item.getItemID()));
-            String [] data = productInfo.split("\\t", -1);
-            String score = Float.toString(item.getValue());
-            recommendations.add(new Recommendation(data, score));
+        if(conn.hexists(PRODUCT_CACHES + siteId, productId + "")) {
+            String recs = conn.hget(PRODUCT_CACHES + siteId, productId + "").replaceAll("[\\[|\\]]", "");
+            String[] recArray = recs.split(",");
+
+            for(int i = 0; i < count && i < recArray.length; i++) {
+                String rec = recArray[i];
+                String[] recVals = rec.replaceAll("[{|\"|}]", "").split(" ");
+                long recProductId = Long.parseLong(recVals[0]);
+                String productInfo = conn.hget(productCatalogPrefix + siteId, recProductId +"");
+                String [] data = productInfo.split("\\t", -1);
+                recommendations.add(new Recommendation(data, recVals[1]));
+            }
+        }
+        else {
+            try {
+                items = recommenderMap.get(siteId).mostSimilarItems(productId, ProductRecommenderConfiguration.NUM_CACHED_SIMILAR_PRODUCT_IDS);
+            } catch (TasteException e) {
+                e.printStackTrace();
+            }
+            if(items == null) {
+                logger.info("Failed to get similar items for sitedId: " + siteId + " processedProductId: " + productId + " count: " + count);
+                return (ArrayList) items;
+            }
+            List<String> similarItemStrings = new ArrayList<>();
+            for(RecommendedItem item: items) {
+                String productInfo = conn.hget(productCatalogPrefix + siteId, Long.toString(item.getItemID()));
+                String [] data = productInfo.split("\\t", -1);
+                String score = Float.toString(item.getValue());
+                recommendations.add(new Recommendation(data, score));
+                similarItemStrings.add("{" + item.getItemID()+ " " + item.getValue() + "}");
+            }
+
+            String similarItemsString = null;
+            try {
+                similarItemsString = mapper.writeValueAsString(similarItemStrings);
+            } catch (JsonProcessingException e) {
+                e.printStackTrace();
+            }
+            if(similarItemsString != null) {
+                logger.info(similarItemsString);
+                conn.hset(PRODUCT_CACHES + siteId, productId + "", similarItemsString);
+            }
         }
 
         return recommendations;
