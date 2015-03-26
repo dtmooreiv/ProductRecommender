@@ -1,6 +1,7 @@
 package com.productrecommender;
 
 import com.productrecommender.health.RedisHealthCheck;
+import com.productrecommender.resource.ProductRecommendationResource;
 import com.productrecommender.resource.RecommendationResource;
 import com.productrecommender.services.scheduled.Preprocessor;
 import io.dropwizard.Application;
@@ -9,6 +10,7 @@ import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import org.apache.mahout.cf.taste.impl.recommender.CachingRecommender;
 
+import org.apache.mahout.cf.taste.impl.recommender.GenericBooleanPrefItemBasedRecommender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
@@ -21,21 +23,14 @@ public class ProductRecommenderApplication extends Application<ProductRecommende
 
     private final static Jedis conn = new Jedis("localhost");
 
-    private final static String inputFilesPath = "src/data/input/";
-    private final static String outputFilesPath = "src/data/output/";
-    private final static String orderHistoryInputFile = "skus_without_urls";
-    private final static String orderHistoryPrefix = "order_history_";
-    private final static String productCatalogPrefix = "product_catalog_";
-    private final static String siteSetName = "site_set";
-
     public static void main(String[] args) throws Exception {
         new ProductRecommenderApplication().run(args);
     }
 
     @Override
     public void initialize(Bootstrap<ProductRecommenderConfiguration> bootstrap) {
-        Preprocessor prep = new Preprocessor(conn, inputFilesPath, outputFilesPath, siteSetName);
-        prep.processFiles(orderHistoryInputFile, orderHistoryPrefix, productCatalogPrefix);
+        Preprocessor prep = new Preprocessor(conn, ProductRecommenderConfiguration.inputFilesPath, ProductRecommenderConfiguration.outputFilesPath, ProductRecommenderConfiguration.siteSetName);
+        prep.processFiles(ProductRecommenderConfiguration.orderHistoryInputFile, ProductRecommenderConfiguration.orderHistoryPrefix, ProductRecommenderConfiguration.productCatalogPrefix);
         bootstrap.addBundle(new AssetsBundle("/assets", "/", "index.html"));
     }
 
@@ -43,15 +38,18 @@ public class ProductRecommenderApplication extends Application<ProductRecommende
     public void run(ProductRecommenderConfiguration productRecommenderConfiguration, Environment environment) throws Exception {
         logger.info("Started Recommending");
 
-        Map<Long, CachingRecommender> recommenders = productRecommenderConfiguration.getRecommenders(conn, siteSetName, outputFilesPath + orderHistoryPrefix);
+        Map<Long, CachingRecommender> recommenders = productRecommenderConfiguration.getRecommenders(conn, ProductRecommenderConfiguration.siteSetName, ProductRecommenderConfiguration.outputFilesPath + ProductRecommenderConfiguration.orderHistoryPrefix);
+        Map<Long, GenericBooleanPrefItemBasedRecommender> fullRecommenders = productRecommenderConfiguration.getFullRecommenders(conn, ProductRecommenderConfiguration.siteSetName, ProductRecommenderConfiguration.outputFilesPath + ProductRecommenderConfiguration.orderHistoryPrefix);
 
         JedisPool pool = productRecommenderConfiguration.getPool();
 
-        final RecommendationResource recommendationResource = new RecommendationResource(pool, recommenders, siteSetName, productCatalogPrefix);
+        final RecommendationResource recommendationResource = new RecommendationResource(pool, recommenders, ProductRecommenderConfiguration.siteSetName, ProductRecommenderConfiguration.productCatalogPrefix);
+        final ProductRecommendationResource productRecommendationResource = new ProductRecommendationResource(pool, fullRecommenders, ProductRecommenderConfiguration.siteSetName, ProductRecommenderConfiguration.productCatalogPrefix);
         final RedisHealthCheck redisHealthCheck = new RedisHealthCheck();
 
         environment.jersey().setUrlPattern("/api/*");
         environment.jersey().register(recommendationResource);
+        environment.jersey().register(productRecommendationResource);
         environment.healthChecks().register("Redis", redisHealthCheck);
     }
 }

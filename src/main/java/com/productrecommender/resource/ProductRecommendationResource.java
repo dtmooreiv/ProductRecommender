@@ -2,6 +2,7 @@ package com.productrecommender.resource;
 
 import com.productrecommender.core.Recommendation;
 import com.productrecommender.params.LongArrayParam;
+import com.productrecommender.params.StringArrayParam;
 import io.dropwizard.jersey.params.IntParam;
 import io.dropwizard.jersey.params.LongParam;
 import org.apache.mahout.cf.taste.common.TasteException;
@@ -46,13 +47,13 @@ public class ProductRecommendationResource {
     }
 
     @GET
-    public HashMap<Long, ArrayList<Recommendation>> recommend(@PathParam("siteId") LongParam siteId,
-                                                              @PathParam("productId")LongArrayParam productIds,
-                                                              @QueryParam("count") @DefaultValue(10) IntParam count ) {
+    public HashMap<String, ArrayList<Recommendation>> recommend(@PathParam("siteId") LongParam siteId,
+                                                              @PathParam("productId")StringArrayParam productIds,
+                                                              @QueryParam("count") @DefaultValue("10") IntParam count ) {
         logger.info(count + " recommendations requested for site id " + siteId + " contact id "  + productIds);
 
 
-        HashMap<Long, ArrayList<Recommendation>> recommendations = new HashMap<>();
+        HashMap<String, ArrayList<Recommendation>> recommendations = new HashMap<>();
 
         try (Jedis conn = pool.getResource()){
             //Check to see if we have data for this site
@@ -61,8 +62,8 @@ public class ProductRecommendationResource {
             }
 
             //Get list of recommendations per contact id given
-            for (long productId: productIds.get()) {
-                recommendations.put(productId, recommendationsForProductId(conn, siteId.get(), productId, count.get()));
+            for (String productId: productIds.get()) {
+                recommendations.put(productId, recommendationsForProductId(conn, siteId.get(), productId.hashCode(), count.get()));
             }
         }
 
@@ -83,9 +84,10 @@ public class ProductRecommendationResource {
         }
 
         for(RecommendedItem item: items) {
-            Map<String, String> productInfo = conn.hgetAll(productCatalogPrefix + siteId + "_" + item.getItemID());
+            String productInfo = conn.hget(productCatalogPrefix + siteId, Long.toString(item.getItemID()));
+            String [] data = productInfo.split("\\t", -1);
             String score = Float.toString(item.getValue());
-            recommendations.add(new Recommendation(productInfo, score));
+            recommendations.add(new Recommendation(data, score));
         }
 
         return recommendations;
