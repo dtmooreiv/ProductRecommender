@@ -1,3 +1,15 @@
+function setContact() {
+
+    document.getElementById("typeLabel").innerHTML = "Contact ID";
+
+}
+
+function setProd(){
+
+    document.getElementById("typeLabel").innerHTML = "Product ID";
+
+}
+
 function getRecommendations() {
     //Get user input for desired recommendations
 	var siteId = document.getElementById("siteIdInput").value;
@@ -6,11 +18,20 @@ function getRecommendations() {
 	//We need to validate that these are all numbers
 
     //Get the recommendations based on user input
-	var response = httpGet("/api/recommend/" + siteId + "/" + contactId + "?count=" + count);
+    var response;
+    if (document.getElementById("Radio1").checked == "checked"){
 
+	    response = httpGet("/api/recommend/" + siteId + "/" + contactId + "?count=" + count);
+
+    }
+    else {
+
+        response = httpGet("/api/product-recommend/" + siteId + "/" + contactId + "?count=" + count);
+
+    }
 	//Get and Remove all previous results
 	var resultsTable = document.getElementById("results");
-	clearRecommendationTable(resultsTable);
+    clearRecommendationTable(resultsTable);
 
     //Add a list item containing the productId and score to the results ordered list for display
     createRecommendationTable(response, resultsTable);
@@ -23,7 +44,12 @@ function createRecommendationTable(getRequestResponse, tableElement) {
 
         var titleContainer = document.createElement("div");
         titleContainer.className = "container";
-        titleContainer.innerHTML = "<br><h1> Recommendations for Contact ID: " + key + "</h1><br><br>";
+        if (document.getElementById("Radio1").checked == "checked"){
+            titleContainer.innerHTML = "<br><h1> Recommendations for Contact ID: " + key + "</h1><br><br>";
+        }
+        else {
+            titleContainer.innerHTML = "<br><h1> Recommendations for Product ID: " + key + "</h1><br><br>";
+        }
         titleContainer.align = "center";
         tableElement.appendChild(titleContainer);
 
