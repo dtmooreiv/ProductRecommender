@@ -11,38 +11,42 @@ import static org.junit.Assert.*;
 public class PreprocessorTest {
 
     private final static Jedis conn = new Jedis("localhost");
-    private static Preprocessor prep;
 
-    private final static String testFileName = "src/data/test/testPreProcessor";
-    private final static String[] CreatedTestFileNames = {"order_history_111","order_history_222","order_history_333"};
+    private final static String inputFilesPath = "src/test/data/input/";
+    private final static String outputFilesPath = "src/test/data/output/";
+    private final static String orderHistoryInputFile = "testPreProcessor";
+    private final static String orderHistoryPrefix = "proctest_order_history_";
+    private final static String productCatalogPrefix = "product_catalog_";
+    private final static String siteSetName = "proctest_site_set";
 
     private final static int numLines111 = 12;
     private final static int numLines222 = 24;
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        prep = new Preprocessor(conn);
+        // process the files
+        Preprocessor prep = new Preprocessor(conn, inputFilesPath, outputFilesPath, siteSetName);
+        prep.processFiles(orderHistoryInputFile, orderHistoryPrefix, productCatalogPrefix);
     }
 
     @AfterClass
     public static void tearDownAfterClass() throws Exception {
+        conn.flushAll();
         conn.close();
     }
 
     @Test
     public void testReadFile() throws Exception {
-        // process the files
-        prep.readFile(testFileName);
 
-        File testFile111 = new File(CreatedTestFileNames[0]);
-        File testFile222 = new File(CreatedTestFileNames[1]);
-        File testFile333 = new File(CreatedTestFileNames[2]);
+        File testFile111 = new File(outputFilesPath + orderHistoryPrefix + 111);
+        File testFile222 = new File(outputFilesPath + orderHistoryPrefix + 222);
+        File testFile333 = new File(outputFilesPath + orderHistoryPrefix + 333);
 
         // check that the right ones exist
         Boolean ProperFilesExists = testFile111.isFile() && testFile222.isFile() && !testFile333.isFile();
         assertTrue(ProperFilesExists);
 
-        // check line count of the ones that exist
+        // check line count of the files that should exist
         Scanner test111 = new Scanner(testFile111);
         int countLines111 = 0;
         while (test111.hasNextLine()) {
@@ -60,5 +64,9 @@ public class PreprocessorTest {
         }
         test222.close();
         assertEquals(numLines222, countLines222);
+
+        // remove created files
+        testFile111.delete();
+        testFile222.delete();
     }
 }

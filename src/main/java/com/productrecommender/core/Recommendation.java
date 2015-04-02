@@ -4,11 +4,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class Recommendation {
 
-    private final static String titleDefault = "Default Title";
-    private final static String productUrlDefault = "Default Product Url";
-    private final static String imageUrlDefault = "http://bronto.com/files/upload-docs/bronto-logo.png";
-    private final static String categoryDefault = "Default Category";
-    private final static String descriptionDefault = "Default Description";
+    private final static String[] defaultText = {"Default Title",
+            "Default Product Url",
+            "http://bronto.com/files/upload-docs/bronto-logo.png",
+            "Default Category",
+            "Default Description"};
 
     private String productId;
     private String score;
@@ -23,21 +23,29 @@ public class Recommendation {
     }
 
     public Recommendation(String productId, String score) {
-        this(productId, titleDefault, productUrlDefault, imageUrlDefault, categoryDefault, descriptionDefault, score);
+        this(productId, defaultText[0], defaultText[1], defaultText[2], defaultText[3], defaultText[4], score);
     }
 
-    public Recommendation(String[] productInfo, String score) {
-        this(productInfo[0], productInfo[1], productInfo[2], productInfo[3], productInfo[4], productInfo[5], score);
+    public Recommendation(String[] product, String score) {
+        this(product[0], product[1], product[2], product[3], product[4], product[5], score);
     }
 
     public Recommendation(String productId, String title, String productUrl, String imageUrl, String category, String description, String score) {
         this.productId = productId;
-        this.title = title;
-        this.productUrl = productUrl;
-        this.imageUrl = imageUrl;
-        this.category = category;
-        this.description = description;
+        this.title = checkString(title,0);
+        this.productUrl = checkString(productUrl,1);
+        this.imageUrl = checkString(imageUrl,2);
+        this.category = checkString(category,3);
+        this.description = checkString(description,4);
         this.score = score;
+    }
+
+    private String checkString(String str, int defaultIndex) {
+        if(str != null && !str.isEmpty()) {
+            return str;
+        } else {
+            return defaultText[defaultIndex];
+        }
     }
 
     @JsonProperty
