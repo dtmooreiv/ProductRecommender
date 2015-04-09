@@ -3,6 +3,7 @@ package com.productrecommender;
 import com.productrecommender.health.RedisHealthCheck;
 import com.productrecommender.resource.ProductRecommendationResource;
 import com.productrecommender.resource.RecommendationResource;
+import com.productrecommender.services.scheduled.Evaluator;
 import com.productrecommender.services.scheduled.Preprocessor;
 import io.dropwizard.Application;
 import io.dropwizard.assets.AssetsBundle;
@@ -31,6 +32,10 @@ public class ProductRecommenderApplication extends Application<ProductRecommende
     public void initialize(Bootstrap<ProductRecommenderConfiguration> bootstrap) {
         Preprocessor prep = new Preprocessor(conn, ProductRecommenderConfiguration.inputFilesPath, ProductRecommenderConfiguration.outputFilesPath, ProductRecommenderConfiguration.siteSetName);
         prep.processFiles(ProductRecommenderConfiguration.orderHistoryInputFile, ProductRecommenderConfiguration.orderHistoryPrefix, ProductRecommenderConfiguration.productCatalogPrefix);
+
+        Evaluator eval = new Evaluator(conn, ProductRecommenderConfiguration.outputFilesPath, ProductRecommenderConfiguration.orderHistoryPrefix, ProductRecommenderConfiguration.siteSetName);
+        eval.evaluateRecommenders();
+
         bootstrap.addBundle(new AssetsBundle("/assets", "/", "index.html"));
     }
 
