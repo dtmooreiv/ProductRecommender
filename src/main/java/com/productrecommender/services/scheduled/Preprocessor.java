@@ -1,5 +1,7 @@
 package com.productrecommender.services.scheduled;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 
 import java.io.*;
@@ -10,6 +12,7 @@ import java.util.Scanner;
 
 public class Preprocessor {
 
+    private final static Logger logger = LoggerFactory.getLogger(Preprocessor.class);
     private final Jedis conn;
 
     private HashMap<String, LinkedList<String>> siteBasedOrderHistory;
@@ -72,7 +75,7 @@ public class Preprocessor {
 
         // Save changes to the order data list for the current site
         siteBasedOrderHistory.put(token[0], orderData);
-        orderHistoryProductData(token[0],token[2]);
+        orderHistoryProductData(token[0], token[2]);
     }
 
     private void orderHistoryProductData(String siteId, String productId) {
@@ -139,6 +142,7 @@ public class Preprocessor {
         for (Map.Entry<String,HashMap<String, String>> entry : siteBasedProductCatalog.entrySet()) {
             String key = keyPrefix + entry.getKey();
             HashMap<String, String> products = entry.getValue();
+            logger.info("Key: " + key + " products: " + products);
             conn.hmset(key, products);
         }
     }
