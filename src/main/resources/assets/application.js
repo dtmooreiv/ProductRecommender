@@ -1,12 +1,23 @@
-function setContact() {
+function setRecType() {
 
-    document.getElementById("typeLabel").innerHTML = "Contact ID";
+    var radios = document.getElementsByName("recType");
+    var typeText = document.getElementById("typeLabel");
+    if (radios[0].checked){
 
-}
+        typeText.innerHTML = "Contact Based";
 
-function setProd(){
+    }
+    else if (radios[1].checked){
 
-    document.getElementById("typeLabel").innerHTML = "Product ID";
+        typeText.innerHTML = "Product Based";
+
+    }
+    else{
+
+        typeText.innerHTML = "Error";
+
+    }
+
 
 }
 
@@ -19,16 +30,17 @@ function getRecommendations() {
 
     //Get the recommendations based on user input
     var response;
-    //if (document.getElementById("Radio1").checked == "checked"){
+    var radios = document.getElementsByName("recType");
+    if (radios[0].checked){
 
 	    response = httpGet("/api/recommend/" + siteId + "/" + contactId + "?count=" + count);
 
-    //}
-    //else {
+    }
+    else {
 
-    //    response = httpGet("/api/product-recommend/" + siteId + "/" + contactId + "?count=" + count);
+        response = httpGet("/api/product-recommend/" + siteId + "/" + contactId + "?count=" + count);
 
-    //}
+    }
 	//Get and Remove all previous results
 	var resultsTable = document.getElementById("results");
     clearRecommendationTable(resultsTable);
@@ -44,12 +56,13 @@ function createRecommendationTable(getRequestResponse, tableElement) {
 
         var titleContainer = document.createElement("div");
         titleContainer.className = "container";
-        //if (document.getElementById("Radio1").checked == "checked"){
+        var radios = document.getElementsByName("recType");
+        if (radios[0].checked){
             titleContainer.innerHTML = "<br><h1> Recommendations for Contact ID: " + key + "</h1><br><br>";
-        //}
-        //else {
-        //    titleContainer.innerHTML = "<br><h1> Recommendations for Product ID: " + key + "</h1><br><br>";
-        //}
+        }
+        else {
+            titleContainer.innerHTML = "<br><h1> Recommendations for Product ID: " + key + "</h1><br><br>";
+        }
         titleContainer.align = "center";
         tableElement.appendChild(titleContainer);
 

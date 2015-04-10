@@ -6,9 +6,15 @@ import org.junit.After;
 import static org.junit.Assert.*;
 import junit.framework.TestCase;
 import org.junit.runners.Parameterized;
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.firefox.FirefoxDriver;
+import org.openqa.selenium.support.ui.ExpectedCondition;
+import org.openqa.selenium.support.ui.WebDriverWait;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Parameters;
+import org.openqa.selenium.WebDriver;
 
 import com.thoughtworks.selenium.DefaultSelenium;
 import com.thoughtworks.selenium.Selenium;
@@ -16,15 +22,32 @@ import com.thoughtworks.selenium.SeleniumException;
 
 public class indexTest{
 
-    private static Selenium selenium;
-    private int testInt = 1;
+    //WebDriver driver;
 
-    @Before
+    public static void main(String[] args){
+
+        WebDriver driver = new FirefoxDriver();
+        driver.get("http://www.google.com");
+
+        WebElement element = driver.findElement(By.name("q"));
+        element.sendKeys("Cheese!");
+        element.submit();
+        System.out.println("Title of the page is " + driver.getTitle());
+
+        (new WebDriverWait(driver, 10)).until(new ExpectedCondition<Boolean>(){
+                                                 public Boolean apply(WebDriver d) {
+                                                     return d.getTitle().toLowerCase().startsWith("Cheese!");
+                                                 }
+                                              });
+
+
+        driver.quit();
+    }
+
+    /*@Before
     public void startSelenium(){
-        //set up redis?
-        this.selenium = new DefaultSelenium("localhost", 8080, "Firefox", "localhost:8080");
-        this.selenium.start();
-        this.testInt = 2;
+
+        driver = new FirefoxDriver();
 
     }
 
@@ -41,17 +64,16 @@ public class indexTest{
     @Test
     public void testButtons() {
 
-        assertEquals(2, this.testInt);
-        this.selenium.click("identifier=recButton");
-        this.selenium.waitForPageToLoad("30000");
-        assertEquals("Recommendation Front End", this.selenium.getTitle());
-        assert(true);
+        driver.get("localhost:8080");
+        assertEquals(driver.getTitle(), "Recommendation Front End");
 
     }
 
     @After
     public void stopSelenium(){
-        this.selenium.stop();
-    }
+
+        driver.quit();
+
+    }*/
 
 }
