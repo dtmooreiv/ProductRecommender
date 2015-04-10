@@ -80,7 +80,7 @@ public class ProductRecommendationResource {
     private ArrayList<Recommendation> recommendationsForProductId(Jedis conn, long siteId, long productId, int count) {
         List<RecommendedItem> items = null;
         ArrayList<Recommendation> recommendations = new ArrayList<>();
-
+        //
         if(conn.hexists(PRODUCT_CACHES + siteId, productId + "")) {
             String recs = conn.hget(PRODUCT_CACHES + siteId, productId + "").replaceAll("[\\[|\\]]", "");
             String[] recArray = recs.split(",");
@@ -105,7 +105,8 @@ public class ProductRecommendationResource {
                 return (ArrayList) items;
             }
             List<String> similarItemStrings = new ArrayList<>();
-            for(RecommendedItem item: items) {
+            for(int i = 0; i < count && i < items.size(); i++) {
+                RecommendedItem item = items.get(i);
                 String productInfo = conn.hget(productCatalogPrefix + siteId, Long.toString(item.getItemID()));
                 String [] data = productInfo.split("\\t", -1);
                 String score = Float.toString(item.getValue());
