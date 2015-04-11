@@ -11,9 +11,6 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.support.ui.ExpectedCondition;
 import org.openqa.selenium.support.ui.WebDriverWait;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Parameters;
 import org.openqa.selenium.WebDriver;
 
 import com.thoughtworks.selenium.DefaultSelenium;
@@ -22,29 +19,10 @@ import com.thoughtworks.selenium.SeleniumException;
 
 public class indexTest{
 
-    //WebDriver driver;
+    WebDriver driver;
+    boolean setupDone = false;
 
-    public static void main(String[] args){
-
-        WebDriver driver = new FirefoxDriver();
-        driver.get("http://www.google.com");
-
-        WebElement element = driver.findElement(By.name("q"));
-        element.sendKeys("Cheese!");
-        element.submit();
-        System.out.println("Title of the page is " + driver.getTitle());
-
-        (new WebDriverWait(driver, 10)).until(new ExpectedCondition<Boolean>(){
-                                                 public Boolean apply(WebDriver d) {
-                                                     return d.getTitle().toLowerCase().startsWith("Cheese!");
-                                                 }
-                                              });
-
-
-        driver.quit();
-    }
-
-    /*@Before
+    @Before
     public void startSelenium(){
 
         driver = new FirefoxDriver();
@@ -52,17 +30,7 @@ public class indexTest{
     }
 
     @Test
-    public void testUserBased() {
-
-    }
-
-    @Test
-    public void testProdBased() {
-
-    }
-
-    @Test
-    public void testButtons() {
+    public void canGetPage() {
 
         driver.get("localhost:8080");
         assertEquals(driver.getTitle(), "Recommendation Front End");
@@ -74,6 +42,6 @@ public class indexTest{
 
         driver.quit();
 
-    }*/
+    }
 
 }
