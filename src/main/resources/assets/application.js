@@ -55,6 +55,7 @@ function createRecommendationTable(getRequestResponse, tableElement) {
     for (key in recommendations) {
 
         var titleContainer = document.createElement("div");
+        titleContainer.id = "resultsContainer";
         titleContainer.className = "container";
         var radios = document.getElementsByName("recType");
         if (radios[0].checked){
@@ -133,6 +134,7 @@ function createRecommendationTable(getRequestResponse, tableElement) {
 
             var prodScoreCol = document.createElement("div");
             prodScoreCol.className = "col-md-2";
+            prodScoreCol.name = "score";
             prodScoreCol.appendChild(document.createTextNode(recommendations[key][i].score));
 
             var catCol = document.createElement("div");
