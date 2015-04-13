@@ -211,8 +211,8 @@ public class indexTest{
 
     public void inOrder(List<WebElement> scoreThings){
 
-        double[] rawScores = new double[10];
-        double[] sortedScores = new double[10];
+        double[] rawScores = new double[scoreThings.size()];
+        double[] sortedScores = new double[scoreThings.size()];
 
         for (int i = 0; i < 10; i++){
 
