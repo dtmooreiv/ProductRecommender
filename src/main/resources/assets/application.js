@@ -1,3 +1,26 @@
+function setRecType() {
+
+    var radios = document.getElementsByName("recType");
+    var typeText = document.getElementById("typeLabel");
+    if (radios[0].checked){
+
+        typeText.innerHTML = "Contact Based";
+
+    }
+    else if (radios[1].checked){
+
+        typeText.innerHTML = "Product Based";
+
+    }
+    else{
+
+        typeText.innerHTML = "Error";
+
+    }
+
+
+}
+
 function getRecommendations() {
     //Get user input for desired recommendations
 	var siteId = document.getElementById("siteIdInput").value;
@@ -6,11 +29,21 @@ function getRecommendations() {
 	//We need to validate that these are all numbers
 
     //Get the recommendations based on user input
-	var response = httpGet("/api/recommend/" + siteId + "/" + contactId + "?count=" + count);
+    var response;
+    var radios = document.getElementsByName("recType");
+    if (radios[0].checked){
 
+	    response = httpGet("/api/recommend/" + siteId + "/" + contactId + "?count=" + count);
+
+    }
+    else {
+
+        response = httpGet("/api/product-recommend/" + siteId + "/" + contactId + "?count=" + count);
+
+    }
 	//Get and Remove all previous results
 	var resultsTable = document.getElementById("results");
-	clearRecommendationTable(resultsTable);
+    clearRecommendationTable(resultsTable);
 
     //Add a list item containing the productId and score to the results ordered list for display
     createRecommendationTable(response, resultsTable);
@@ -22,8 +55,15 @@ function createRecommendationTable(getRequestResponse, tableElement) {
     for (key in recommendations) {
 
         var titleContainer = document.createElement("div");
+        titleContainer.id = "resultsContainer";
         titleContainer.className = "container";
-        titleContainer.innerHTML = "<br><h1> Recommendations for Contact ID: " + key + "</h1><br><br>";
+        var radios = document.getElementsByName("recType");
+        if (radios[0].checked){
+            titleContainer.innerHTML = "<br><h1> Recommendations for Contact ID: " + key + "</h1><br><br>";
+        }
+        else {
+            titleContainer.innerHTML = "<br><h1> Recommendations for Product ID: " + key + "</h1><br><br>";
+        }
         titleContainer.align = "center";
         tableElement.appendChild(titleContainer);
 
@@ -94,6 +134,7 @@ function createRecommendationTable(getRequestResponse, tableElement) {
 
             var prodScoreCol = document.createElement("div");
             prodScoreCol.className = "col-md-2";
+            prodScoreCol.name = "score";
             prodScoreCol.appendChild(document.createTextNode(recommendations[key][i].score));
 
             var catCol = document.createElement("div");

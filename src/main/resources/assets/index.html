@@ -21,7 +21,7 @@
             <div class="col-md-4">
             </div>
             <div class="col-md-4">
-                <img src="bronto.jpeg" align="center">
+                <img src="http://bronto.com/files/upload-docs/bronto-logo.png" align="center">
             </div>
             <div class="col-md-4">
             </div>
@@ -35,6 +35,20 @@
             <br>
             <br>
         </div>
+
+        <div class="radio" align="center">
+            <label><input type="radio" name="recType" value=0 onclick="setRecType()" checked>Contact Based</label>
+        </div>
+        <div class="radio" align="center">
+            <label><input type="radio" name="recType" value=1 onclick="setRecType()">Product Based</label>
+        </div>
+
+        <div class="container">
+            <br>
+            <br>
+            <br>
+        </div>
+
         <div class="row" id="inputHolder">
             <div class="col-md-1">
             </div>
@@ -44,8 +58,8 @@
             <div class="col-md-2">
                 <input type="text" class="form-control" id="siteIdInput" value="9621">
             </div>
-            <div class="col-md-1">
-                Customer ID:
+            <div class="col-md-1" id="typeLabel">
+                Contact ID:
             </div>
             <div class="col-md-2">
                 <input type="text" class="form-control" id="contactIdInput" value="69750106">
@@ -57,6 +71,7 @@
                 <input type="number" class="form-control" id="countInput" value="10">
             </div>
             <div class="col-md-1">
+
             </div>
         </div>
         <br>
@@ -64,7 +79,7 @@
             <div class="col-md-4">
             </div>
             <div class="col-md-4">
-                <input type="button" class="form-control" onclick="getRecommendations()" value="Get Recommendations"/>
+                <input type="button" class="form-control" onclick="getRecommendations()" value="Get Recommendations" id="recButton">
             </div>
             <div class="col-md-4">
             </div>
