@@ -55,6 +55,7 @@ public class indexTest{
     @Test
     public void checkGoodUserBasedResults(){
 
+        //clear the default values
         WebElement siteInput = driver.findElement(By.id("siteIdInput"));
         siteInput.clear();
 
@@ -65,6 +66,7 @@ public class indexTest{
 
         assertEquals("", contactInput.getText());
 
+        //add the good values
         siteInput.sendKeys("13703");
         contactInput.sendKeys("83605079");
         WebElement theButton = driver.findElement(By.id("recButton"));
