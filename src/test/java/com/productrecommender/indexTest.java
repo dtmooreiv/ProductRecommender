@@ -37,8 +37,11 @@ public class indexTest{
         //tests getting recommendations with user based
         assertEquals(driver.getTitle(), "Recommendation Front End");
 
+        //click the button
         WebElement theButton = driver.findElement(By.id("recButton"));
         theButton.click();
+
+        //check out the results
         WebElement theResults = driver.findElement(By.id("resultsContainer"));
         assertNotNull(theResults);
         List<WebElement> resultPics = driver.findElements(By.className("img-responsive"));
