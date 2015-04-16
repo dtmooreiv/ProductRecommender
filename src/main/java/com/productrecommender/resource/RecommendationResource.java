@@ -12,12 +12,7 @@ import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
+import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -83,7 +78,7 @@ public class RecommendationResource {
         // Pull out the itemIds into a string array to pass into the jedis request
         String[] resultIds = new String[recommendedItems.size()];
         for (int i = 0; i < recommendedItems.size(); i++) {
-            resultIds[i] = Long.toString(recommendedItems.get(i).getItemID());
+            resultIds[i] = String.valueOf(recommendedItems.get(i).getItemID());
         }
         // Use the itemIds from the recommender to get all the item data from redis
         List<String> resultData = conn.hmget(productCatalogPrefix + siteId, resultIds);
@@ -93,7 +88,7 @@ public class RecommendationResource {
         for (int i = 0; i < recommendedItems.size(); i++) {
             String productInfo = resultData.get(i);
             String [] data = productInfo.split("\\t",-1);
-            String score = Float.toString(recommendedItems.get(i).getValue());
+            String score = String.valueOf(recommendedItems.get(i).getValue());
             recommendations.add(new Recommendation(data, score));
         }
 
