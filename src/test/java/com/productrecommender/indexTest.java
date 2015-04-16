@@ -214,6 +214,7 @@ public class indexTest{
 
     }
 
+    //method for checking that recommendations are in proper order
     public void inOrder(List<WebElement> scoreThings){
 
         double[] rawScores = new double[scoreThings.size()];
