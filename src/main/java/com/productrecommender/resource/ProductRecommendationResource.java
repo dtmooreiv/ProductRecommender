@@ -1,10 +1,7 @@
 package com.productrecommender.resource;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.productrecommender.ProductRecommenderConfiguration;
 import com.productrecommender.core.Recommendation;
-import com.productrecommender.params.LongArrayParam;
 import com.productrecommender.params.StringArrayParam;
 import io.dropwizard.jersey.params.IntParam;
 import io.dropwizard.jersey.params.LongParam;
@@ -16,12 +13,7 @@ import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
+import javax.ws.rs.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -32,102 +24,111 @@ import java.util.Map;
 public class ProductRecommendationResource {
 
     private final static Logger logger = LoggerFactory.getLogger(ProductRecommendationResource.class);
-    public static final String PRODUCT_CACHES = "product_caches_";
+
+    public final String PRODUCT_CACHES = "product_caches_";
 
     private final JedisPool pool;
     private final Map<Long, GenericBooleanPrefItemBasedRecommender> recommenderMap;
-    private final String siteSetName;
     private final String productCatalogPrefix;
-    private final ObjectMapper mapper;
-
-
 
     public ProductRecommendationResource(JedisPool pool,
                                          Map<Long, GenericBooleanPrefItemBasedRecommender> recommenderMap,
-                                         String siteSetName,
                                          String productCatalogPrefix) {
         this.pool = pool;
         this.recommenderMap = recommenderMap;
-        this.siteSetName = siteSetName;
         this.productCatalogPrefix = productCatalogPrefix;
-        this.mapper = new ObjectMapper();
     }
 
     @GET
     public HashMap<String, ArrayList<Recommendation>> recommend(@PathParam("siteId") LongParam siteId,
                                                               @PathParam("productId")StringArrayParam productIds,
                                                               @QueryParam("count") @DefaultValue("10") IntParam count ) {
-        logger.info(count + " recommendations requested for site id " + siteId + " contact id "  + productIds);
 
+        logger.info(count + " recommendations requested for site id " + siteId + " contact id "  + productIds);
 
         HashMap<String, ArrayList<Recommendation>> recommendations = new HashMap<>();
 
         try (Jedis conn = pool.getResource()){
             //Check to see if we have data for this site
-            if(!conn.sismember(siteSetName, siteId.toString())) {
+            if (!recommenderMap.containsKey(siteId.get())) {
                 return recommendations;
             }
 
-            //Get list of recommendations per contact id given
+            //Get list of recommendations per product id given
             for (String productId: productIds.get()) {
                 recommendations.put(productId, recommendationsForProductId(conn, siteId.get(), productId.hashCode(), count.get()));
             }
+        } catch (TasteException e) {
+            e.printStackTrace();
         }
 
         return recommendations;
     }
 
-    private ArrayList<Recommendation> recommendationsForProductId(Jedis conn, long siteId, long productId, int count) {
-        List<RecommendedItem> items = null;
+    private ArrayList<Recommendation> recommendationsForProductId(Jedis conn, long siteId, long productId, int count) throws TasteException {
+        String[] resultIds;
+        String[] resultScores;
+
+        if (conn.hexists(PRODUCT_CACHES + siteId, String.valueOf(productId))) {
+            // Get cached recommendations and alter count bases on available recommendations
+            String[] recommendedItems = conn.hget(PRODUCT_CACHES + siteId, String.valueOf(productId)).split(";");
+            count = (recommendedItems.length > count) ? count : recommendedItems.length;
+
+            // This is where the recommendations to be returned will be stored for processing
+            resultIds = new String[count];
+            resultScores = new String[count];
+            for (int i = 0; i < count; i++) {
+                String[] token = recommendedItems[i].split(",");
+                resultIds[i] = token[0];
+                resultScores[i] = token[1];
+            }
+        } else {
+            // Compute recommendations and alter count bases on available recommendations
+            List<RecommendedItem> recommendedItems = recommenderMap.get(siteId).mostSimilarItems(productId, ProductRecommenderConfiguration.NUM_CACHED_SIMILAR_PRODUCT_IDS);
+            if (recommendedItems.size() == 0) {
+                return new ArrayList<>();
+            }
+            count = (recommendedItems.size() > count) ? count : recommendedItems.size();
+
+            // This is where the recommendations to be returned will be stored for processing
+            resultIds = new String[count];
+            resultScores = new String[count];
+
+            // This is where all the recommendations to be cached will be stored for processing
+            String similarItemsString = "";
+            String fence = "";
+
+            int i = 0;
+            for (RecommendedItem item : recommendedItems) {
+                // Pull out the given number of items in order to return them later
+                if (i < count) {
+                    resultIds[i] = String.valueOf(item.getItemID());
+                    resultScores[i] = String.valueOf(item.getValue());
+                    i++;
+                }
+
+                // Place every recommendation in a string to cache in redis
+                similarItemsString += fence + item.getItemID() + "," + item.getValue();
+                fence = ";";
+            }
+
+            // Cache the recommendations to redis, max is set by ProductRecommenderConfiguration.NUM_CACHED_SIMILAR_PRODUCT_IDS
+            conn.hset(PRODUCT_CACHES + siteId, String.valueOf(productId), similarItemsString);
+        }
+
+        // Use the itemIds from the recommender to get all the item data from redis
+        List<String> resultData = conn.hmget(productCatalogPrefix + siteId, resultIds);
+
+        //Turn list of recommendations and its data into an array list of Recommendation objects
         ArrayList<Recommendation> recommendations = new ArrayList<>();
-        //
-        if(conn.hexists(PRODUCT_CACHES + siteId, productId + "")) {
-            String recs = conn.hget(PRODUCT_CACHES + siteId, productId + "").replaceAll("[\\[|\\]]", "");
-            String[] recArray = recs.split(",");
-
-            for(int i = 0; i < count && i < recArray.length; i++) {
-                String rec = recArray[i];
-                String[] recVals = rec.replaceAll("[{|\"|}]", "").split(" ");
-                long recProductId = Long.parseLong(recVals[0]);
-                String productInfo = conn.hget(productCatalogPrefix + siteId, recProductId +"");
-                String [] data = productInfo.split("\\t", -1);
-                recommendations.add(new Recommendation(data, recVals[1]));
-            }
-        }
-        else {
-            try {
-                items = recommenderMap.get(siteId).mostSimilarItems(productId, ProductRecommenderConfiguration.NUM_CACHED_SIMILAR_PRODUCT_IDS);
-            } catch (TasteException e) {
-                e.printStackTrace();
-            }
-            if(items == null) {
-                logger.info("Failed to get similar items for sitedId: " + siteId + " processedProductId: " + productId + " count: " + count);
-                return (ArrayList) items;
-            }
-            List<String> similarItemStrings = new ArrayList<>();
-            for(int i = 0; i < count && i < items.size(); i++) {
-                RecommendedItem item = items.get(i);
-                String productInfo = conn.hget(productCatalogPrefix + siteId, Long.toString(item.getItemID()));
-                String [] data = productInfo.split("\\t", -1);
-                String score = Float.toString(item.getValue());
-                recommendations.add(new Recommendation(data, score));
-                similarItemStrings.add("{" + item.getItemID()+ " " + item.getValue() + "}");
-            }
-
-            String similarItemsString = null;
-            try {
-                similarItemsString = mapper.writeValueAsString(similarItemStrings);
-            } catch (JsonProcessingException e) {
-                e.printStackTrace();
-            }
-            if(similarItemsString != null) {
-                logger.info(similarItemsString);
-                conn.hset(PRODUCT_CACHES + siteId, productId + "", similarItemsString);
-            }
+        for (int i = 0; i < count; i++) {
+            String productInfo = resultData.get(i);
+            String[] data = productInfo.split("\\t", -1);
+            String score = resultScores[i];
+            recommendations.add(new Recommendation(data, score));
         }
 
+        //return recommendations list
         return recommendations;
     }
-
-
 }
