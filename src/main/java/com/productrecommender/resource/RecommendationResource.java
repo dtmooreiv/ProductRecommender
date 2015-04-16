@@ -12,12 +12,7 @@ import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
+import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,17 +26,14 @@ public class RecommendationResource {
     private final static Logger logger = LoggerFactory.getLogger(RecommendationResource.class);
 
     private final JedisPool pool;
-    private final Map<Long, CachingRecommender> recommenders;
-    private final String siteSetName;
+    private final Map<Long, CachingRecommender> recommenderMap;
     private final String productCatalogPrefix;
 
     public RecommendationResource(JedisPool pool,
-                                  Map<Long, CachingRecommender> recommenders,
-                                  String siteSetName,
+                                  Map<Long, CachingRecommender> recommenderMap,
                                   String productCatalogPrefix) {
         this.pool = pool;
-        this.recommenders = recommenders;
-        this.siteSetName = siteSetName;
+        this.recommenderMap = recommenderMap;
         this.productCatalogPrefix = productCatalogPrefix;
     }
 
@@ -57,7 +49,7 @@ public class RecommendationResource {
 
         try (Jedis conn = pool.getResource()){
             //Check to see if we have data for this site
-            if(!conn.sismember(siteSetName, siteId.toString())) {
+            if (!recommenderMap.containsKey(siteId.get())) {
                 return recommendations;
             }
 
@@ -76,17 +68,31 @@ public class RecommendationResource {
                                                                   long siteId,
                                                                   long contactId,
                                                                   int count) throws TasteException {
-        List<RecommendedItem> recommendedItems = recommenders.get(siteId).recommend(contactId, count);
+        // Use SiteId to get the recommender and then use the contact and count to get the recommendations
+        List<RecommendedItem> recommendedItems = recommenderMap.get(siteId).recommend(contactId, count);
+        if (recommendedItems.size() == 0) {
+            return new ArrayList<>();
+        }
 
-        //Turn list of recommendations into a JSON arraylist
+        // Pull out the itemIds into a string array to pass into the jedis request
+        String[] resultIds = new String[recommendedItems.size()];
+        for (int i = 0; i < recommendedItems.size(); i++) {
+            resultIds[i] = String.valueOf(recommendedItems.get(i).getItemID());
+        }
+
+        // Use the itemIds from the recommender to get all the item data from redis
+        List<String> resultData = conn.hmget(productCatalogPrefix + siteId, resultIds);
+
+        //Turn list of recommendations and its data into an arraylist of Recommendation objects
         ArrayList<Recommendation> recommendations = new ArrayList<>();
-        for (RecommendedItem item : recommendedItems) {
-
-            String productInfo = conn.hget(productCatalogPrefix + siteId, Long.toString(item.getItemID()));
+        for (int i = 0; i < recommendedItems.size(); i++) {
+            String productInfo = resultData.get(i);
             String [] data = productInfo.split("\\t",-1);
-            String score = Float.toString(item.getValue());
+            String score = String.valueOf(recommendedItems.get(i).getValue());
             recommendations.add(new Recommendation(data, score));
         }
+
+        //return recommendations list
         return recommendations;
     }
 }

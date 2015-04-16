@@ -9,7 +9,6 @@ import io.dropwizard.assets.AssetsBundle;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import org.apache.mahout.cf.taste.impl.recommender.CachingRecommender;
-
 import org.apache.mahout.cf.taste.impl.recommender.GenericBooleanPrefItemBasedRecommender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,13 +37,13 @@ public class ProductRecommenderApplication extends Application<ProductRecommende
     public void run(ProductRecommenderConfiguration productRecommenderConfiguration, Environment environment) throws Exception {
         logger.info("Started Recommending");
 
-        Map<Long, CachingRecommender> recommenders = productRecommenderConfiguration.getRecommenders(conn, ProductRecommenderConfiguration.siteSetName, ProductRecommenderConfiguration.outputFilesPath + ProductRecommenderConfiguration.orderHistoryPrefix);
-        Map<Long, GenericBooleanPrefItemBasedRecommender> fullRecommenders = productRecommenderConfiguration.getFullRecommenders(conn, ProductRecommenderConfiguration.siteSetName, ProductRecommenderConfiguration.outputFilesPath + ProductRecommenderConfiguration.orderHistoryPrefix);
+        Map<Long, GenericBooleanPrefItemBasedRecommender> recommenderMap = productRecommenderConfiguration.getRecommenderMap(conn);
+        Map<Long, CachingRecommender> cachedRecommenderMap = productRecommenderConfiguration.getCachedRecommenderMap(recommenderMap);
 
         JedisPool pool = productRecommenderConfiguration.getPool();
 
-        final RecommendationResource recommendationResource = new RecommendationResource(pool, recommenders, ProductRecommenderConfiguration.siteSetName, ProductRecommenderConfiguration.productCatalogPrefix);
-        final ProductRecommendationResource productRecommendationResource = new ProductRecommendationResource(pool, fullRecommenders, ProductRecommenderConfiguration.siteSetName, ProductRecommenderConfiguration.productCatalogPrefix);
+        final RecommendationResource recommendationResource = new RecommendationResource(pool, cachedRecommenderMap, ProductRecommenderConfiguration.productCatalogPrefix);
+        final ProductRecommendationResource productRecommendationResource = new ProductRecommendationResource(pool, recommenderMap, ProductRecommenderConfiguration.productCatalogPrefix);
         final RedisHealthCheck redisHealthCheck = new RedisHealthCheck();
 
         environment.jersey().setUrlPattern("/api/*");
