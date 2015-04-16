@@ -33,10 +33,15 @@ public class Preprocessor {
     }
 
     public void processFiles(String orderHistoryInput, String orderHistoryPrefix, String productCatalogPrefix) {
+        logger.info("Processing Order History");
         processOrderHistory(orderHistoryInput);
+        logger.info("Processing Product Catalog");
         processProductCatalog(productCatalogPrefix);
+        logger.info("Storing Order History");
         storeOrderHistoryBySite(orderHistoryPrefix);
+        logger.info("Storing Product Catalog");
         storeProductCatalogsBySite(productCatalogPrefix);
+        logger.info("Data Processing Finished");
     }
 
     // ++++++++++++++++++++++++++++++++++++++++++++++ORDERHISTORY+++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -135,17 +140,18 @@ public class Preprocessor {
         siteBasedProductCatalog.put(catalogKey, productData);
     }
 
-    // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    // +++++++++++++++++++++++++++++++++++++++++++STOREPRODUCTCATALOG++++++++++++++++++++++++++++++++++++++++++++++++++
 
     // Takes all processed product data and saves it to redis by the site id
     private void storeProductCatalogsBySite(String keyPrefix) {
         for (Map.Entry<String,HashMap<String, String>> entry : siteBasedProductCatalog.entrySet()) {
             String key = keyPrefix + entry.getKey();
             HashMap<String, String> products = entry.getValue();
-            logger.info("Key: " + key + " products: " + products);
             conn.hmset(key, products);
         }
     }
+
+    // +++++++++++++++++++++++++++++++++++++++++++STOREORDERHISTORY+++++++++++++++++++++++++++++++++++++++++++++++++++
 
     // Takes all processed order data and writes it to individual files by the site id
     private void storeOrderHistoryBySite(String outputFilePrefix) {
