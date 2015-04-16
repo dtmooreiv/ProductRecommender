@@ -3,7 +3,6 @@ package com.productrecommender;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.dropwizard.Configuration;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.mahout.cf.taste.common.TasteException;
 import org.apache.mahout.cf.taste.impl.common.LongPrimitiveIterator;
 import org.apache.mahout.cf.taste.impl.model.file.FileDataModel;
@@ -12,7 +11,6 @@ import org.apache.mahout.cf.taste.impl.recommender.GenericBooleanPrefItemBasedRe
 import org.apache.mahout.cf.taste.impl.similarity.LogLikelihoodSimilarity;
 import org.apache.mahout.cf.taste.model.DataModel;
 import org.apache.mahout.cf.taste.recommender.RecommendedItem;
-import org.apache.mahout.cf.taste.recommender.Recommender;
 import org.apache.mahout.cf.taste.similarity.ItemSimilarity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,8 +24,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-
 
 public class ProductRecommenderConfiguration extends Configuration{
 
@@ -41,38 +37,11 @@ public class ProductRecommenderConfiguration extends Configuration{
     final static String productCatalogPrefix = "product_catalog_";
     final static String siteSetName = "site_set";
 
-    public Map<Long,CachingRecommender> getRecommenders(Jedis conn,
-                                                        String siteSet,
-                                                        String dataFile) throws IOException, TasteException {
-
-        HashMap<Long, CachingRecommender> recommenders = new HashMap<>();
-
-        //For every site id in the site set
-        for(String _siteId: conn.smembers(siteSet)) {
-            try {
-                //try to parse a long
-                long siteId = Long.parseLong(_siteId);
-                //open the corresponding order_history file
-                DataModel model = new FileDataModel(new File(dataFile + siteId));
-                //calculate the ItemSimilarity matrix
-                ItemSimilarity similarity = new LogLikelihoodSimilarity(model);
-                //make a recommender
-                Recommender recommender = new GenericBooleanPrefItemBasedRecommender(model, similarity);
-                //create a caching recommender
-                CachingRecommender cachingRecommender = new CachingRecommender(recommender);
-                //store it in the recommenders map
-                recommenders.put(siteId, cachingRecommender);
-            } catch (NumberFormatException e) {
-                logger.info("Could not parse site id from member: " + _siteId + " of site_set");
-            }
-        }
-
-        return recommenders;
+    public Map<Long, GenericBooleanPrefItemBasedRecommender> getRecommenderMap(Jedis conn) throws IOException {
+        return getRecommenderMap(conn, siteSetName, outputFilesPath + orderHistoryPrefix);
     }
 
-    public Map<Long,GenericBooleanPrefItemBasedRecommender> getFullRecommenders(Jedis conn,
-                                                        String siteSet,
-                                                        String dataFile) throws IOException, TasteException {
+    public Map<Long, GenericBooleanPrefItemBasedRecommender> getRecommenderMap(Jedis conn, String siteSet, String input) throws IOException {
 
         HashMap<Long, GenericBooleanPrefItemBasedRecommender> recommenders = new HashMap<>();
 
@@ -82,7 +51,7 @@ public class ProductRecommenderConfiguration extends Configuration{
                 //try to parse a long
                 long siteId = Long.parseLong(_siteId);
                 //open the corresponding order_history file
-                DataModel model = new FileDataModel(new File(dataFile + siteId));
+                DataModel model = new FileDataModel(new File(input + siteId));
                 //calculate the ItemSimilarity matrix
                 ItemSimilarity similarity = new LogLikelihoodSimilarity(model);
                 //make a recommender
@@ -97,6 +66,21 @@ public class ProductRecommenderConfiguration extends Configuration{
         return recommenders;
     }
 
+    public Map<Long, CachingRecommender> getCachedRecommenderMap(Map<Long, GenericBooleanPrefItemBasedRecommender> recommenders) throws TasteException {
+        HashMap<Long, CachingRecommender> cachedRecommenders = new HashMap<>();
+
+        //For every entry in the recommenders map cache the customer recommendations
+        for (Map.Entry<Long, GenericBooleanPrefItemBasedRecommender> entry : recommenders.entrySet()) {
+            // Caching the current recommender
+            CachingRecommender cachedRecommender = new CachingRecommender(entry.getValue());
+            // Store it in the recommenders map
+            cachedRecommenders.put(entry.getKey(), cachedRecommender);
+        }
+
+        return cachedRecommenders;
+    }
+
+    // This can be used to cache all product recommendations during initialization.
     public boolean cacheRecommenderProductSimilarities(GenericBooleanPrefItemBasedRecommender recommender, Jedis conn, long siteId) {
         logger.info("CachingProductSimilarities");
         DataModel model = recommender.getDataModel();
@@ -123,7 +107,7 @@ public class ProductRecommenderConfiguration extends Configuration{
                     e.printStackTrace();
                 }
                 if(similarItemsString != null) {
-                    String productInfo = productMap.get(itemId);
+                    String productInfo = productMap.get(String.valueOf(itemId));
                     productInfo = productInfo + "\\t" + similarItemsString;
                     logger.info("SiteId: " + siteId + " ItemId: " + itemId +" ProductInfo: " + productInfo);
                     //productMap.put(itemId, productInfo);
@@ -135,8 +119,6 @@ public class ProductRecommenderConfiguration extends Configuration{
             e.printStackTrace();
             val = false;
         }
-
-
         return val;
     }
 
