@@ -4,12 +4,12 @@ function setRecType() {
     var typeText = document.getElementById("typeLabel");
     if (radios[0].checked){
 
-        typeText.innerHTML = "Contact Based";
+        typeText.innerHTML = "Contact ID:";
 
     }
     else if (radios[1].checked){
 
-        typeText.innerHTML = "Product Based";
+        typeText.innerHTML = "Product ID:";
 
     }
     else{
@@ -134,7 +134,7 @@ function createRecommendationTable(getRequestResponse, tableElement) {
 
             var prodScoreCol = document.createElement("div");
             prodScoreCol.className = "col-md-2";
-            prodScoreCol.name = "score";
+            prodScoreCol.id = "scoreLabel";
             prodScoreCol.appendChild(document.createTextNode(recommendations[key][i].score));
 
             var catCol = document.createElement("div");
