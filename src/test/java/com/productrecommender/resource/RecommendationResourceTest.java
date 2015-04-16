@@ -36,12 +36,11 @@ public class RecommendationResourceTest {
     private HashMap<Long, ArrayList<Recommendation>> testRecommendations;
 
     private final static LongParam siteId = new LongParam("111");
-    private final static long[] contactIds = {69750106L,111547205L,1L};
-    private final static LongArrayParam singleContactId = new LongArrayParam(Long.toString(contactIds[0]));
-    private final static LongArrayParam multipleContactId = new LongArrayParam(contactIds[0] + "," + contactIds[1]);
-    private final static LongArrayParam NoResultsContactId = new LongArrayParam(Long.toString(contactIds[2]));
+    private final static LongParam invalidSiteId = new LongParam("0");
+    private final static long[] contactIds = {69750106L, 111547205L, 135946476L, 134531373L, 1L};
 
     private final static int count = 10;
+    private final static int resultsLowerThenCount = 3;
     private final static IntParam countParam = new IntParam(Integer.toString(count));
 
 
@@ -50,10 +49,10 @@ public class RecommendationResourceTest {
         Preprocessor prep = new Preprocessor(conn, inputFilesPath, outputFilesPath, siteSetName);
         prep.processFiles(orderHistoryInputFile, orderHistoryPrefix, productCatalogPrefix);
         ProductRecommenderConfiguration productRecommenderConfiguration = new ProductRecommenderConfiguration();
-        Map<Long, GenericBooleanPrefItemBasedRecommender> recommenders = productRecommenderConfiguration.getRecommenders(conn, siteSetName, outputFilesPath + orderHistoryPrefix);
-        Map<Long, CachingRecommender> cachedRecommenders = productRecommenderConfiguration.getCachedContactRecommenders(recommenders);
+        Map<Long, GenericBooleanPrefItemBasedRecommender> recommenders = productRecommenderConfiguration.getRecommenderMap(conn, siteSetName, outputFilesPath + orderHistoryPrefix);
+        Map<Long, CachingRecommender> cachedRecommenders = productRecommenderConfiguration.getCachedRecommenderMap(recommenders);
         JedisPool pool = productRecommenderConfiguration.getPool();
-        recommendationResource = new RecommendationResource(pool, cachedRecommenders, siteSetName, productCatalogPrefix);
+        recommendationResource = new RecommendationResource(pool, cachedRecommenders, productCatalogPrefix);
     }
 
     @AfterClass
@@ -78,22 +77,57 @@ public class RecommendationResourceTest {
 
     @Test
     public void testRecommendSingleContactId() throws Exception {
-        testRecommendations = recommendationResource.recommend(siteId, singleContactId, countParam);
+        LongArrayParam ids = new LongArrayParam(Long.toString(contactIds[0]));
+        testRecommendations = recommendationResource.recommend(siteId, ids, countParam);
         assertEquals(1,testRecommendations.size());
         assertEquals(count,testRecommendations.get(contactIds[0]).size());
     }
 
     @Test
     public void testRecommendMultipleContactId() throws Exception {
-        testRecommendations = recommendationResource.recommend(siteId, multipleContactId, countParam);
+        LongArrayParam ids = new LongArrayParam(contactIds[0] + "," + contactIds[1]);
+        testRecommendations = recommendationResource.recommend(siteId, ids, countParam);
         assertEquals(2,testRecommendations.size());
         assertEquals(count,testRecommendations.get(contactIds[0]).size());
         assertEquals(count,testRecommendations.get(contactIds[1]).size());
     }
 
     @Test
-    public void testRecommendNoResultsContactId() throws Exception {
-        testRecommendations = recommendationResource.recommend(siteId, NoResultsContactId, countParam);
+    public void testResultsLowerThenCount() throws Exception {
+        LongArrayParam ids = new LongArrayParam(Long.toString(contactIds[2]));
+        testRecommendations = recommendationResource.recommend(siteId, ids, countParam);
+        assertEquals(1, testRecommendations.size());
+        assertEquals(resultsLowerThenCount, testRecommendations.get(contactIds[2]).size());
+    }
+
+    @Test
+    public void testZeroResults() throws Exception {
+        LongArrayParam ids = new LongArrayParam(Long.toString(contactIds[3]));
+        testRecommendations = recommendationResource.recommend(siteId, ids, countParam);
+        assertEquals(1, testRecommendations.size());
+        assertEquals(0, testRecommendations.get(contactIds[3]).size());
+    }
+
+    @Test
+    public void testRecommendZeroResultsWithMultipleContactId() throws Exception {
+        LongArrayParam ids = new LongArrayParam(contactIds[0] + "," + contactIds[3]);
+        testRecommendations = recommendationResource.recommend(siteId, ids, countParam);
+        assertEquals(2, testRecommendations.size());
+        assertEquals(count, testRecommendations.get(contactIds[0]).size());
+        assertEquals(0, testRecommendations.get(contactIds[3]).size());
+    }
+
+    @Test
+    public void testInvalidContactId() throws Exception {
+        LongArrayParam ids = new LongArrayParam(Long.toString(contactIds[4]));
+        testRecommendations = recommendationResource.recommend(siteId, ids, countParam);
+        assertEquals(0, testRecommendations.size());
+    }
+
+    @Test
+    public void testInvalidSiteId() throws Exception {
+        LongArrayParam ids = new LongArrayParam(contactIds[0] + "," + contactIds[1]);
+        testRecommendations = recommendationResource.recommend(invalidSiteId, ids, countParam);
         assertEquals(0,testRecommendations.size());
     }
 }
