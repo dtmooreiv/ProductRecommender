@@ -29,7 +29,7 @@ public class ProductRecommendationResourceTest {
 
     private final static String inputFilesPath = "src/test/data/input/";
     private final static String outputFilesPath = "src/test/data/output/";
-    private final static String orderHistoryInputFile = "testProductRecommendationResource";
+    private final static String orderHistoryInputFile = "product_recommender_test_order_history_input";
     private final static String orderHistoryPrefix = "product_recommender_test_order_history_";
     private final static String productCatalogPrefix = "product_recommender_test_product_catalog_";
     private final static String siteSetName = "product_recommender_test_site_set";

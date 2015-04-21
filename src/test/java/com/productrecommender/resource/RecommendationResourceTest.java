@@ -28,7 +28,7 @@ public class RecommendationResourceTest {
 
     private final static String inputFilesPath = "src/test/data/input/";
     private final static String outputFilesPath = "src/test/data/output/";
-    private final static String orderHistoryInputFile = "testRecommendationResource";
+    private final static String orderHistoryInputFile = "recommender_test_order_history_input";
     private final static String orderHistoryPrefix = "recommender_test_order_history_";
     private final static String productCatalogPrefix = "recommender_test_product_catalog_";
     private final static String siteSetName = "recommender_test_site_set";
