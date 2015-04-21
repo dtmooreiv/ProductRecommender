@@ -19,14 +19,14 @@ public class PreprocessorTest {
 
     private final static String inputFilesPath = "src/test/data/input/";
     private final static String outputFilesPath = "src/test/data/output/";
-    private final static String orderHistoryInputFile = "testPreProcessor";
+    private final static String orderHistoryInputFile = "processor_test_order_history_input";
     private final static String orderHistoryPrefix = "processor_test_order_history_";
     private final static String productCatalogPrefix = "processor_test_product_catalog_";
     private final static String siteSetName = "processor_test_site_set";
 
-    private final static String[] siteList = {"111", "222", "333"};
+    private final static String[] siteList = {"111", "222", "333", "33934", "13703"};
     private final static int[] numLines = {12,24,-1};
-    private final static int[] numProducts = {2,24};
+    private final static int[] numProducts = {8,38,8,8};
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
@@ -95,11 +95,28 @@ public class PreprocessorTest {
         assertTrue(conn.exists(productCatalogPrefix + siteList[0]));
         productCatalogSize = conn.hgetAll(productCatalogPrefix + siteList[0]).size();
         assertEquals(productCatalogSize, numProducts[0]);
-        // Test the data stored for the second site
+
+        // Test the data stored for the second site this has items not all in the catalog
         assertTrue(conn.exists(productCatalogPrefix + siteList[1]));
         productCatalogSize = conn.hgetAll(productCatalogPrefix + siteList[1]).size();
         assertEquals(productCatalogSize, numProducts[1]);
+
         // Test that there was no data stored for the third site
         assertFalse(conn.exists(productCatalogPrefix + siteList[2]));
     }
+
+    @Test
+    public void testRedisProductCatalogSiteReName() throws Exception {
+        int productCatalogSize;
+        // Test that site 1000 was converted to 33934
+        assertTrue(conn.exists(productCatalogPrefix + siteList[3]));
+        productCatalogSize = conn.hgetAll(productCatalogPrefix + siteList[3]).size();
+        assertEquals(productCatalogSize, numProducts[2]);
+
+        // Test that site 1001 was converted to 13703
+        assertTrue(conn.exists(productCatalogPrefix + siteList[4]));
+        productCatalogSize = conn.hgetAll(productCatalogPrefix + siteList[4]).size();
+        assertEquals(productCatalogSize, numProducts[3]);
+    }
+
 }
