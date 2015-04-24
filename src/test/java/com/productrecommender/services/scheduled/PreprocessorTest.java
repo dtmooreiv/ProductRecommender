@@ -37,7 +37,13 @@ public class PreprocessorTest {
 
     @AfterClass
     public static void tearDownAfterClass() throws Exception {
-        conn.del(siteSetName, productCatalogPrefix + siteList[0], productCatalogPrefix + siteList[1], productCatalogPrefix + siteList[2]);
+        conn.del(siteSetName,
+                productCatalogPrefix + siteList[0],
+                productCatalogPrefix + siteList[1],
+                productCatalogPrefix + siteList[2],
+                productCatalogPrefix + siteList[3],
+                productCatalogPrefix + siteList[4]
+        );
         conn.close();
         removeTestOutput();
     }
