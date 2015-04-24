@@ -41,6 +41,7 @@ public class ProductRecommenderConfiguration extends Configuration{
         return getRecommenderMap(conn, siteSetName, outputFilesPath + orderHistoryPrefix);
     }
 
+    // This was made for testing purposes
     public Map<Long, GenericBooleanPrefItemBasedRecommender> getRecommenderMap(Jedis conn, String siteSet, String input) throws IOException {
 
         HashMap<Long, GenericBooleanPrefItemBasedRecommender> recommenders = new HashMap<>();
