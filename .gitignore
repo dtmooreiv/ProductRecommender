@@ -1,8 +1,10 @@
-*order_history_*
+.idea/
+src/data/input/*
+src/data/output/*
+!src/data/*/README
 target/
-skus_without_urls
+dump.rdb
 *.iml
 *.ipr
 *.iws
-.idea/
-dump.rdb
+
